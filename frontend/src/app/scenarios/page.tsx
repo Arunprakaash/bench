@@ -41,6 +41,41 @@ import { Download, Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/li
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function toScenarioCreate(value: unknown): ScenarioCreate | null {
+  if (!isRecord(value)) return null;
+  if ("scenario" in value && isRecord(value.scenario)) return value.scenario as ScenarioCreate;
+  if ("name" in value && "turns" in value) return value as ScenarioCreate;
+  return null;
+}
+
+function extractImportScenarios(parsed: unknown): ScenarioCreate[] {
+  if (Array.isArray(parsed)) {
+    const scenarios = parsed.map(toScenarioCreate).filter((s): s is ScenarioCreate => s != null);
+    if (scenarios.length > 0) return scenarios;
+  }
+
+  const single = toScenarioCreate(parsed);
+  if (single) return [single];
+
+  if (isRecord(parsed) && Array.isArray(parsed.scenarios)) {
+    const scenarios = parsed.scenarios
+      .map((entry) => {
+        if (isRecord(entry) && "scenario" in entry) return toScenarioCreate(entry.scenario);
+        return toScenarioCreate(entry);
+      })
+      .filter((s): s is ScenarioCreate => s != null);
+    if (scenarios.length > 0) return scenarios;
+  }
+
+  throw new Error(
+    "Invalid import JSON. Provide a scenario object, { scenario }, an array, or { scenarios: [...] }.",
+  );
+}
+
 export default function ScenariosPage() {
   return (
     <Suspense
@@ -75,6 +110,7 @@ function ScenariosPageInner() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -234,11 +270,35 @@ function ScenariosPageInner() {
               <Upload className="mr-2 h-4 w-4" />
               Import JSON…
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Import scenario JSON</DialogTitle>
+                <DialogTitle>Import scenario JSON (single or multiple)</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="scenario-import-file">JSON file</Label>
+                  <Input
+                    id="scenario-import-file"
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        setImportText(text);
+                        setImportFileName(file.name);
+                        setImportError(null);
+                      } catch {
+                        setImportError("Failed to read selected file.");
+                      }
+                    }}
+                  />
+                  {importFileName && (
+                    <p className="text-xs text-muted-foreground">Loaded: {importFileName}</p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="scenario-import">Scenario JSON</Label>
                   <Textarea
@@ -248,8 +308,9 @@ function ScenariosPageInner() {
                       setImportText(e.target.value);
                       setImportError(null);
                     }}
-                    placeholder='Paste the exported JSON here…'
-                    rows={10}
+                    placeholder='Paste one scenario JSON, an array, or {"scenarios":[...]}'
+                    rows={16}
+                    className="font-mono text-xs whitespace-pre-wrap break-all min-h-[18rem] max-h-[60vh]"
                   />
                   {importError && (
                     <p className="text-sm text-destructive">{importError}</p>
@@ -262,6 +323,7 @@ function ScenariosPageInner() {
                       setImportOpen(false);
                       setImportText("");
                       setImportError(null);
+                      setImportFileName(null);
                     }}
                   >
                     Cancel
@@ -272,16 +334,14 @@ function ScenariosPageInner() {
                       setImporting(true);
                       setImportError(null);
                       try {
-                        const parsed = JSON.parse(importText) as ScenarioCreate | { scenario: ScenarioCreate };
-                        const payload =
-                          typeof parsed === "object" && parsed != null && "scenario" in parsed
-                            ? (parsed as { scenario: ScenarioCreate }).scenario
-                            : (parsed as ScenarioCreate);
-                        const created = await api.scenarios.import(payload);
+                        const parsed = JSON.parse(importText) as unknown;
+                        const payloads = extractImportScenarios(parsed);
+                        const created = await Promise.all(payloads.map((payload) => api.scenarios.import(payload)));
                         setImportOpen(false);
                         setImportText("");
+                        setImportFileName(null);
                         await fetchScenarios();
-                        router.push(`/scenarios/${created.id}`);
+                        if (created.length === 1) router.push(`/scenarios/${created[0].id}`);
                       } catch (e) {
                         setImportError((e as Error).message);
                       } finally {
