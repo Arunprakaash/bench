@@ -132,12 +132,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </svg>
                   </span>
                   {!collapsed && (
-                    <span className="flex items-baseline gap-1">
-                      <span className="text-sm font-semibold tracking-tight">
+                    <span className="flex items-center gap-1">
+                      <span className="text-sm font-semibold tracking-tight leading-none">
                         Bench
-                      </span>
-                      <span className="text-[10px] tracking-wide text-primary/70">
-                        lab
                       </span>
                     </span>
                   )}
