@@ -593,7 +593,35 @@
                 }
               ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/failures?limit=50",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "failures"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"run_id\": \"11111111-1111-1111-1111-111111111111\",\n    \"scenario_id\": \"22222222-2222-2222-2222-222222222222\",\n    \"scenario_name\": \"Checkout flow failure\",\n    \"owner_user_id\": \"33333333-3333-3333-3333-333333333333\",\n    \"owner_display_name\": \"Arun\",\n    \"suite_id\": null,\n    \"agent_id\": \"44444444-4444-4444-4444-444444444444\",\n    \"status\": \"failed\",\n    \"created_at\": \"2026-03-20T10:30:00Z\",\n    \"duration_ms\": 1842,\n    \"first_failed_turn_index\": 2,\n    \"first_failed_user_input\": \"Proceed to payment\",\n    \"first_failed_reasoning\": \"Expected tool call was not emitted.\",\n    \"first_failed_error\": null\n  }\n]"
+            }
+          ]
         }
       ]
     },

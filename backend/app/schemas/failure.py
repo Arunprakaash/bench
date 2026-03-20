@@ -10,6 +10,8 @@ class FailureInboxItem(BaseModel):
     run_id: UUID
     scenario_id: UUID
     scenario_name: str | None = None
+    owner_user_id: UUID | None = None
+    owner_display_name: str | None = None
     suite_id: UUID | None = None
     agent_id: UUID | None = None
     status: RunStatus

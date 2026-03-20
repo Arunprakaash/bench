@@ -50,7 +50,8 @@ async def list_failures(
     db: AsyncSession = Depends(get_db),
 ):
     query = (
-        select(TestRun)
+        select(TestRun, User.display_name, User.email)
+        .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
         .where(TestRun.owner_user_id == current_user.id)
         .where(TestRun.status.in_([RunStatus.FAILED, RunStatus.ERROR]))
@@ -65,16 +66,18 @@ async def list_failures(
         query = query.where(TestRun.agent_id == agent_id)
 
     result = await db.execute(query)
-    runs = result.scalars().all()
+    rows = result.all()
 
     items: list[FailureInboxItem] = []
-    for r in runs:
+    for r, display_name, email in rows:
         summary = _first_failure_summary(r)
         items.append(
             FailureInboxItem(
                 run_id=r.id,
                 scenario_id=r.scenario_id,
                 scenario_name=r.scenario.name if r.scenario else None,
+                owner_user_id=r.owner_user_id,
+                owner_display_name=display_name or email,
                 suite_id=r.suite_id,
                 agent_id=r.agent_id,
                 status=r.status,

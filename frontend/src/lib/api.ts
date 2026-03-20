@@ -252,6 +252,8 @@ export interface FailureInboxItem {
   run_id: string;
   scenario_id: string;
   scenario_name: string | null;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   suite_id: string | null;
   agent_id: string | null;
   status: "failed" | "error";
