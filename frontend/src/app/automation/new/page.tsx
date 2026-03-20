@@ -103,7 +103,13 @@ export default function NewAutomationSchedulePage() {
                   <span className="line-clamp-1">{selectedScenarioLabel ?? "Select scenario"}</span>
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {scenarioOptions.map((opt) => <SelectItem key={opt.value} value={opt.value} className="truncate">{opt.label}</SelectItem>)}
+                  {scenarioOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="block truncate" title={opt.label}>
+                        {opt.label}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -113,7 +119,13 @@ export default function NewAutomationSchedulePage() {
                   <span className="line-clamp-1">{selectedSuiteLabel ?? "Select suite"}</span>
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {suiteOptions.map((opt) => <SelectItem key={opt.value} value={opt.value} className="truncate">{opt.label}</SelectItem>)}
+                  {suiteOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="block truncate" title={opt.label}>
+                        {opt.label}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
