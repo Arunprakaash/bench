@@ -369,7 +369,7 @@ function SuitesPageInner() {
               syncUrl({ q: search, scenario: scenarioFilter, page: 1, pageSize: s });
             }}
           />
-          <Table className="table-fixed">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[44px]">

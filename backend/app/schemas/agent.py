@@ -59,6 +59,9 @@ class AgentListItem(BaseModel):
     module: str
     agent_class: str
     tags: list[str] | None
+    owner_user_id: UUID | None = None
+    owner_display_name: str | None = None
+    created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
