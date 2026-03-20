@@ -34,5 +34,8 @@ class SuiteListResponse(BaseModel):
     name: str
     description: str | None
     scenario_count: int
+    scenario_ids: list[UUID] = []
+    owner_user_id: UUID | None = None
+    owner_display_name: str | None = None
     created_at: datetime
     updated_at: datetime

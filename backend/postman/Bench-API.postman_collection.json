@@ -407,7 +407,26 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/suites"
-          }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/suites"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n    \"name\": \"Core Regression\",\n    \"description\": \"Main smoke and regression checks\",\n    \"scenario_count\": 8,\n    \"scenario_ids\": [\n      \"cccccccc-cccc-cccc-cccc-cccccccccccc\",\n      \"dddddddd-dddd-dddd-dddd-dddddddddddd\"\n    ],\n    \"owner_user_id\": \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\n    \"owner_display_name\": \"Arun\",\n    \"created_at\": \"2026-03-20T10:00:00Z\",\n    \"updated_at\": \"2026-03-20T11:00:00Z\"\n  }\n]"
+            }
+          ]
         },
         {
           "name": "Get Suite",

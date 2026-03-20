@@ -70,6 +70,9 @@ async def list_suites(current_user: User = Depends(get_current_user), db: AsyncS
             name=s.name,
             description=s.description,
             scenario_count=len(s.scenarios),
+            scenario_ids=[sc.id for sc in s.scenarios],
+            owner_user_id=s.owner_user_id,
+            owner_display_name=current_user.display_name or current_user.email,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )

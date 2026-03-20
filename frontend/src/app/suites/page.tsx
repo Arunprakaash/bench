@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { api, type SuiteListItem } from "@/lib/api";
-import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { api, type ScenarioListItem, type SuiteListItem } from "@/lib/api";
+import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,7 +18,14 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { FolderOpen, Play, Plus, Search, Trash2 } from "@/lib/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar, FolderOpen, Play, Plus, Search, Trash2 } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -45,25 +52,32 @@ function SuitesPageInner() {
   const searchParams = useSearchParams();
 
   const qFromUrl = getParam(searchParams, "q") ?? "";
+  const scenarioFromUrl = getParam(searchParams, "scenario") ?? "all";
   const pageFromUrl = getIntParam(searchParams, "page", 1);
   const pageSizeFromUrl = getIntParam(searchParams, "pageSize", DEFAULT_PAGE_SIZE);
 
   const [suites, setSuites] = useState<SuiteListItem[]>([]);
+  const [scenarios, setScenarios] = useState<ScenarioListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState(qFromUrl);
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
+  const [scenarioFilter, setScenarioFilter] = useState(scenarioFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [running, setRunning] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSearch(qFromUrl);
+    setScenarioFilter(scenarioFromUrl);
     setPage(pageFromUrl);
     setPageSize(pageSizeFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qFromUrl, pageFromUrl, pageSizeFromUrl]);
+  }, [qFromUrl, scenarioFromUrl, pageFromUrl, pageSizeFromUrl]);
 
   useEffect(() => {
     loadSuites();
@@ -74,6 +88,8 @@ function SuitesPageInner() {
     try {
       const data = await api.suites.list();
       setSuites(data);
+      const scenarioData = await api.scenarios.list();
+      setScenarios(scenarioData);
     } catch (e) {
       setLoadError((e as Error).message || "Failed to load suites.");
       setSuites([]);
@@ -83,19 +99,45 @@ function SuitesPageInner() {
   };
 
   const filtered = useMemo(() => {
-    if (!search) return suites;
-    const q = search.toLowerCase();
-    return suites.filter((s) => s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
-  }, [suites, search]);
+    let result = suites;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((s) => s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
+    }
+    if (dateFilter) {
+      result = result.filter((s) => {
+        const d = new Date(s.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter((s) => (s.owner_display_name || "Unknown") === creatorFilter);
+    }
+    if (scenarioFilter !== "all") {
+      result = result.filter((s) => (s.scenario_ids || []).includes(scenarioFilter));
+    }
+    return result;
+  }, [suites, search, dateFilter, creatorFilter, scenarioFilter]);
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(suites.map((s) => s.owner_display_name || "Unknown"))).sort(),
+    [suites],
+  );
+  const creatorFilterLabel = creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`;
+  const scenarioFilterLabel =
+    scenarioFilter === "all"
+      ? "Scenario: All"
+      : `Scenario: ${scenarios.find((s) => s.id === scenarioFilter)?.name || "Unknown"}`;
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
   const pagedIds = useMemo(() => paged.map((suite) => suite.id), [paged]);
   const allPagedSelected = pagedIds.length > 0 && pagedIds.every((id) => selectedIds.includes(id));
 
   const syncUrl = useCallback(
-    (next: { q?: string; page?: number; pageSize?: number }) => {
+    (next: { q?: string; scenario?: string; page?: number; pageSize?: number }) => {
       const sp = new URLSearchParams(searchParams.toString());
       setOrDelete(sp, "q", next.q);
+      setOrDelete(sp, "scenario", next.scenario && next.scenario !== "all" ? next.scenario : null);
       setOrDelete(sp, "page", next.page && next.page !== 1 ? next.page : null);
       setOrDelete(sp, "pageSize", next.pageSize && next.pageSize !== DEFAULT_PAGE_SIZE ? next.pageSize : null);
       const qs = sp.toString();
@@ -107,7 +149,7 @@ function SuitesPageInner() {
   const handleSearch = (v: string) => {
     setSearch(v);
     setPage(1);
-    syncUrl({ q: v, page: 1, pageSize });
+    syncUrl({ q: v, scenario: scenarioFilter, page: 1, pageSize });
   };
 
   useEffect(() => {
@@ -191,6 +233,91 @@ function SuitesPageInner() {
             className="pl-9"
           />
         </div>
+        <div className="relative w-[180px]">
+          <Input
+            ref={dateInputRef}
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+          />
+          <button
+            type="button"
+            aria-label="Open date picker"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+        </div>
+        <Select
+          value={scenarioFilter}
+          onValueChange={(v) => {
+            const next = v ?? "all";
+            setScenarioFilter(next);
+            setPage(1);
+            syncUrl({ q: search, scenario: next, page: 1, pageSize });
+          }}
+        >
+          <SelectTrigger className="w-[240px]">
+            <SelectValue className="sr-only" placeholder="Scenario" />
+            <span className="line-clamp-1">{scenarioFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent className="w-[320px]">
+            <SelectItem value="all">All scenarios</SelectItem>
+            {scenarios.map((scenario) => (
+              <SelectItem key={scenario.id} value={scenario.id}>
+                <span className="block truncate" title={scenario.name}>
+                  {scenario.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={creatorFilter}
+          onValueChange={(v) => {
+            setCreatorFilter(v ?? "all");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Created by" />
+            <span className="line-clamp-1">{creatorFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All creators</SelectItem>
+            {creatorOptions.map((creator) => (
+              <SelectItem key={creator} value={creator}>
+                {creator}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            setDateFilter("");
+            setCreatorFilter("all");
+            setScenarioFilter("all");
+            setPage(1);
+            syncUrl({ q: "", scenario: "all", page: 1, pageSize });
+          }}
+        >
+          Clear filters
+        </Button>
       </div>
 
       {loading ? (
@@ -234,12 +361,12 @@ function SuitesPageInner() {
             pageSize={pageSize}
             onPageChange={(p) => {
               setPage(p);
-              syncUrl({ q: search, page: p, pageSize });
+              syncUrl({ q: search, scenario: scenarioFilter, page: p, pageSize });
             }}
             onPageSizeChange={(s) => {
               setPageSize(s);
               setPage(1);
-              syncUrl({ q: search, page: 1, pageSize: s });
+              syncUrl({ q: search, scenario: scenarioFilter, page: 1, pageSize: s });
             }}
           />
           <Table className="table-fixed">
@@ -254,8 +381,9 @@ function SuitesPageInner() {
                 </TableHead>
                 <TableHead className="w-[50%]">Name</TableHead>
                 <TableHead className="w-[100px] text-center">Scenarios</TableHead>
-                <TableHead className="w-[140px] text-right">Created</TableHead>
-                <TableHead className="w-[140px] text-right">Updated</TableHead>
+                <TableHead className="w-[170px] text-right">Created By</TableHead>
+                <TableHead className="w-[190px] text-right">Created At</TableHead>
+                <TableHead className="w-[190px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -295,12 +423,17 @@ function SuitesPageInner() {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDate(suite.created_at)}
+                      {suite.owner_display_name || "Unknown"}
                     </Link>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDate(suite.updated_at)}
+                      {formatDateTime(suite.created_at)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
+                      {formatDateTime(suite.updated_at)}
                     </Link>
                   </TableCell>
                 </TableRow>

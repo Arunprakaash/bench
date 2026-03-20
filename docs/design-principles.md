@@ -73,3 +73,15 @@ This document defines the default UX patterns for list pages, forms, and app lay
 - Every async action should have loading, empty, and error states.
 - Keep focus styles and keyboard behavior consistent with existing shared components.
 - Use visible confirmation for destructive bulk actions.
+
+## 10) Contextual Implementation Completeness
+
+- Do not ship isolated UI changes when the feature implies related updates.
+- For list/filter enhancements, implement full parity contextually:
+  - filter controls
+  - matching table columns/visible data
+  - date + time formatting consistency across similar pages
+- For API response shape changes, always update:
+  - frontend types and usage
+  - API documentation examples in Postman collection
+- Validate end-to-end behavior (frontend + backend) before considering work complete.

@@ -303,6 +303,9 @@ export interface SuiteListItem {
   name: string;
   description: string | null;
   scenario_count: number;
+  scenario_ids?: string[];
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   created_at: string;
   updated_at: string;
 }
