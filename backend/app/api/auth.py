@@ -8,7 +8,7 @@ from typing import Any
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
- 
+
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,13 +85,7 @@ def _create_token(user: User) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-async def _get_current_user(
-    request: Request, db: AsyncSession = Depends(get_db)
-) -> User:
-    auth = request.headers.get("authorization") or ""
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    token = auth[len("Bearer ") :]
+async def _get_user_by_jwt(token: str, db: AsyncSession) -> User:
     try:
         decoded = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except jwt.PyJWTError:
@@ -109,6 +103,39 @@ async def _get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+async def _get_user_by_api_token(token: str, db: AsyncSession) -> User:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user = (await db.execute(select(User).where(User.api_token_hash == token_hash))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return user
+
+
+async def _get_current_user(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> User:
+    auth = request.headers.get("authorization") or ""
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = auth[len("Bearer ") :].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+
+    # API tokens have app-specific prefix and are verified by hash lookup.
+    if token.startswith("ab_"):
+        return await _get_user_by_api_token(token, db)
+
+    # Default auth path for UI/browser sessions.
+    try:
+        return await _get_user_by_jwt(token, db)
+    except HTTPException as jwt_exc:
+        # Fallback allows API tokens passed without the expected prefix pattern.
+        try:
+            return await _get_user_by_api_token(token, db)
+        except HTTPException:
+            raise jwt_exc
 
 
 # Public alias so other routers can import and use it as a dependency.
@@ -268,4 +295,3 @@ async def login(data: LoginRequest):
 async def logout():
     # Token is stored client-side for now.
     return None
-
