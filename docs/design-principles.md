@@ -58,4 +58,3 @@ This document defines the default UX patterns for list pages, forms, and app lay
 - Every async action should have loading, empty, and error states.
 - Keep focus styles and keyboard behavior consistent with existing shared components.
 - Use visible confirmation for destructive bulk actions.
-
