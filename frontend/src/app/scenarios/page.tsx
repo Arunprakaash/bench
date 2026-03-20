@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/table-pagination";
-import { Plus, FlaskConical, Search, Trash2, Upload } from "@/lib/icons";
+import { Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -79,6 +79,7 @@ function ScenariosPageInner() {
   const [importing, setImporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -168,6 +169,21 @@ function ScenariosPageInner() {
       setActionError((e as Error).message || "Failed to delete selected scenarios.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleRunSelected = async () => {
+    if (selectedIds.length === 0 || running) return;
+    setRunning(true);
+    setActionError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.runs.create(id)));
+      setSelectedIds([]);
+      router.push("/runs");
+    } catch (e) {
+      setActionError((e as Error).message || "Failed to run selected scenarios.");
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -319,11 +335,18 @@ function ScenariosPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
-          <div className="flex justify-end p-3 border-b">
+          <div className="flex justify-end gap-2 p-3 border-b">
+            <Button
+              onClick={handleRunSelected}
+              disabled={selectedIds.length === 0 || running || deleting}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {running ? "Running..." : `Run Selected (${selectedIds.length})`}
+            </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteSelected}
-              disabled={selectedIds.length === 0 || deleting}
+              disabled={selectedIds.length === 0 || deleting || running}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}

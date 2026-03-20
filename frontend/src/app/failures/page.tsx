@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FailureInbox, Search, Trash2 } from "@/lib/icons";
+import { FailureInbox, GitCompare, Search, Trash2 } from "@/lib/icons";
 import { api, type FailureInboxItem } from "@/lib/api";
 
 const FOCUS_LINK =
@@ -148,6 +148,16 @@ function FailuresPageInner() {
     }
   };
 
+  const handleCompareSelected = () => {
+    if (selectedIds.length !== 2) return;
+    const [runA, runB] = selectedIds;
+    const sp = new URLSearchParams();
+    sp.set("runA", runA);
+    sp.set("runB", runB);
+    sp.set("from", "/failures");
+    router.push(`/runs/compare?${sp.toString()}`);
+  };
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -217,7 +227,15 @@ function FailuresPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
-          <div className="flex justify-end p-3 border-b">
+          <div className="flex justify-end gap-2 p-3 border-b">
+            <Button
+              variant="outline"
+              onClick={handleCompareSelected}
+              disabled={selectedIds.length !== 2 || deleting}
+            >
+              <GitCompare className="mr-2 h-4 w-4" />
+              Compare Selected
+            </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteSelected}

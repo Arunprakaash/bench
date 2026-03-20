@@ -18,7 +18,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { FolderOpen, Plus, Search, Trash2 } from "@/lib/icons";
+import { FolderOpen, Play, Plus, Search, Trash2 } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -56,6 +56,7 @@ function SuitesPageInner() {
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -141,6 +142,21 @@ function SuitesPageInner() {
     }
   };
 
+  const handleRunSelected = async () => {
+    if (selectedIds.length === 0 || running) return;
+    setRunning(true);
+    setLoadError(null);
+    try {
+      await Promise.all(selectedIds.map((id) => api.runs.createSuiteRun(id)));
+      setSelectedIds([]);
+      router.push("/runs");
+    } catch (e) {
+      setLoadError((e as Error).message || "Failed to run selected suites.");
+    } finally {
+      setRunning(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -195,11 +211,18 @@ function SuitesPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
-          <div className="flex justify-end p-3 border-b">
+          <div className="flex justify-end gap-2 p-3 border-b">
+            <Button
+              onClick={handleRunSelected}
+              disabled={selectedIds.length === 0 || running || deleting}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {running ? "Running..." : `Run Selected (${selectedIds.length})`}
+            </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteSelected}
-              disabled={selectedIds.length === 0 || deleting}
+              disabled={selectedIds.length === 0 || deleting || running}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}

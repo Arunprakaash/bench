@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/table-pagination";
-import { Play, Search, Trash2 } from "@/lib/icons";
+import { GitCompare, Play, Search, Trash2 } from "@/lib/icons";
 import { api } from "@/lib/api";
 
 export default function RunsPage() {
@@ -137,6 +137,16 @@ function RunsPageInner() {
     }
   };
 
+  const handleCompareSelected = () => {
+    if (selectedIds.length !== 2) return;
+    const [runA, runB] = selectedIds;
+    const sp = new URLSearchParams();
+    sp.set("runA", runA);
+    sp.set("runB", runB);
+    sp.set("from", "/runs");
+    router.push(`/runs/compare?${sp.toString()}`);
+  };
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -201,7 +211,15 @@ function RunsPageInner() {
         </div>
       ) : (
         <div className="border rounded-lg">
-          <div className="flex justify-end p-3 border-b">
+          <div className="flex justify-end gap-2 p-3 border-b">
+            <Button
+              variant="outline"
+              onClick={handleCompareSelected}
+              disabled={selectedIds.length !== 2 || deleting}
+            >
+              <GitCompare className="mr-2 h-4 w-4" />
+              Compare Selected
+            </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteSelected}
