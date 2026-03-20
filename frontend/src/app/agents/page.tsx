@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api, type AgentListItem } from "@/lib/api";
-import { DEFAULT_PAGE_SIZE, formatDate, paginate } from "@/lib/table-helpers";
+import { DEFAULT_PAGE_SIZE, formatDateTime, paginate } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,8 +18,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { Bot, Plus, Search } from "@/lib/icons";
+import { Bot, Calendar, Plus, Search } from "@/lib/icons";
 import { Trash2 } from "@/lib/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -56,8 +63,11 @@ function AgentsPageInner() {
   const [deleting, setDeleting] = useState(false);
 
   const [search, setSearch] = useState(qFromUrl);
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSearch(qFromUrl);
@@ -101,15 +111,33 @@ function AgentsPageInner() {
   }, [load]);
 
   const filtered = useMemo(() => {
-    if (!search) return items;
-    const q = search.toLowerCase();
-    return items.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        (a.description || "").toLowerCase().includes(q) ||
-        `${a.module}.${a.agent_class}`.toLowerCase().includes(q),
-    );
-  }, [items, search]);
+    let result = items;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          (a.description || "").toLowerCase().includes(q) ||
+          `${a.module}.${a.agent_class}`.toLowerCase().includes(q),
+      );
+    }
+    if (dateFilter) {
+      result = result.filter((a) => {
+        const d = new Date(a.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter((a) => (a.owner_display_name || "Unknown") === creatorFilter);
+    }
+    return result;
+  }, [items, search, dateFilter, creatorFilter]);
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(items.map((a) => a.owner_display_name || "Unknown"))).sort(),
+    [items],
+  );
+  const creatorFilterLabel = creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`;
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
   const pagedIds = useMemo(() => paged.map((a) => a.id), [paged]);
@@ -183,6 +211,66 @@ function AgentsPageInner() {
             className="pl-9"
           />
         </div>
+        <div className="relative w-[180px]">
+          <Input
+            ref={dateInputRef}
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+          />
+          <button
+            type="button"
+            aria-label="Open date picker"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+        </div>
+        <Select
+          value={creatorFilter}
+          onValueChange={(v) => {
+            setCreatorFilter(v ?? "all");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Created by" />
+            <span className="line-clamp-1">{creatorFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All creators</SelectItem>
+            {creatorOptions.map((creator) => (
+              <SelectItem key={creator} value={creator}>
+                {creator}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            setDateFilter("");
+            setCreatorFilter("all");
+            setPage(1);
+            syncUrl({ q: "", page: 1, pageSize });
+          }}
+        >
+          Clear filters
+        </Button>
       </div>
 
       {loading ? (
@@ -235,9 +323,11 @@ function AgentsPageInner() {
                     aria-label="Select all visible agents"
                   />
                 </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Entrypoint</TableHead>
-                <TableHead className="text-right">Updated</TableHead>
+                <TableHead className="w-[32%]">Name</TableHead>
+                <TableHead className="w-[24%]">Entrypoint</TableHead>
+                <TableHead className="w-[140px] text-right">Created By</TableHead>
+                <TableHead className="w-[170px] text-right">Created At</TableHead>
+                <TableHead className="w-[170px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -254,21 +344,29 @@ function AgentsPageInner() {
                       aria-label={`Select agent ${a.name}`}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Link href={`/agents/${a.id}`} className={`text-primary hover:underline ${FOCUS_LINK}`}>
+                  <TableCell className="max-w-full">
+                    <Link href={`/agents/${a.id}`} className={`block truncate text-primary hover:underline ${FOCUS_LINK}`}>
                       {a.name}
                     </Link>
                     {a.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
                         {a.description}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {a.module}.{a.agent_class}
+                  <TableCell className="text-muted-foreground max-w-full">
+                    <span className="block truncate" title={`${a.module}.${a.agent_class}`}>
+                      {a.module}.{a.agent_class}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">
-                    {formatDate(a.updated_at)}
+                    {a.owner_display_name || "Unknown"}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground tabular-nums">
+                    {formatDateTime(a.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground tabular-nums">
+                    {formatDateTime(a.updated_at)}
                   </TableCell>
                 </TableRow>
               ))}

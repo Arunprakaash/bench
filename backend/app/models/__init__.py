@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.oauth_identity import OAuthIdentity
 from app.models.workspace import Workspace
 from app.models.workspace_members import WorkspaceMember
+from app.models.automation import ScheduledRun, RegressionAlert
 
 __all__ = [
     "Agent",
@@ -23,4 +24,6 @@ __all__ = [
     "OAuthIdentity",
     "Workspace",
     "WorkspaceMember",
+    "ScheduledRun",
+    "RegressionAlert",
 ]

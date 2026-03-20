@@ -96,6 +96,8 @@ class ScenarioListResponse(BaseModel):
     tags: list[str] | None
     turn_count: int
     version: int
+    owner_user_id: UUID | None = None
+    owner_display_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

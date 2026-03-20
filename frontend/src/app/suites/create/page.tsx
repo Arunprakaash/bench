@@ -1,16 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type ScenarioListItem, type Suite } from "@/lib/api";
-import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "@/lib/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar, Search } from "@/lib/icons";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 import { TablePagination } from "@/components/table-pagination";
 
@@ -26,9 +33,12 @@ export default function CreateSuitePage() {
   const [scenariosError, setScenariosError] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -49,12 +59,28 @@ export default function CreateSuitePage() {
   }, []);
 
   const filteredScenarios = useMemo(() => {
+    let result = scenarios;
     const query = q.trim().toLowerCase();
-    if (!query) return scenarios;
-    return scenarios.filter((s) => {
-      return s.name.toLowerCase().includes(query) || (s.description || "").toLowerCase().includes(query);
-    });
-  }, [scenarios, q]);
+    if (query) {
+      result = result.filter((s) => s.name.toLowerCase().includes(query) || (s.description || "").toLowerCase().includes(query));
+    }
+    if (dateFilter) {
+      result = result.filter((s) => {
+        const d = new Date(s.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter((s) => (s.owner_display_name || "Unknown") === creatorFilter);
+    }
+    return result;
+  }, [scenarios, q, dateFilter, creatorFilter]);
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(scenarios.map((s) => s.owner_display_name || "Unknown"))).sort(),
+    [scenarios],
+  );
+  const creatorFilterLabel = creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`;
 
   const pagedScenarios = useMemo(
     () => paginate(filteredScenarios, page, pageSize),
@@ -157,6 +183,65 @@ export default function CreateSuitePage() {
                   className="pl-9"
                 />
               </div>
+              <div className="relative w-[180px]">
+                <Input
+                  ref={dateInputRef}
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+                />
+                <button
+                  type="button"
+                  aria-label="Open date picker"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    const input = dateInputRef.current;
+                    if (!input) return;
+                    if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                      (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+                    } else {
+                      input.focus();
+                    }
+                  }}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+              </div>
+              <Select
+                value={creatorFilter}
+                onValueChange={(v) => {
+                  setCreatorFilter(v ?? "all");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue className="sr-only" placeholder="Created by" />
+                  <span className="line-clamp-1">{creatorFilterLabel}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All creators</SelectItem>
+                  {creatorOptions.map((creator) => (
+                    <SelectItem key={creator} value={creator}>
+                      {creator}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setQ("");
+                  setDateFilter("");
+                  setCreatorFilter("all");
+                  setPage(1);
+                }}
+              >
+                Clear filters
+              </Button>
             </div>
 
             {loadingScenarios ? (
@@ -182,7 +267,9 @@ export default function CreateSuitePage() {
                     <TableRow>
                       <TableHead className="w-[44px]">Use</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead className="w-[160px] text-right">Updated</TableHead>
+                      <TableHead className="w-[170px] text-right">Created By</TableHead>
+                      <TableHead className="w-[190px] text-right">Created At</TableHead>
+                      <TableHead className="w-[190px] text-right">Updated At</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -206,7 +293,13 @@ export default function CreateSuitePage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {formatDate(s.updated_at)}
+                            {s.owner_display_name || "Unknown"}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {formatDateTime(s.created_at)}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {formatDateTime(s.updated_at)}
                           </TableCell>
                         </TableRow>
                       );
@@ -214,7 +307,7 @@ export default function CreateSuitePage() {
 
                     {filteredScenarios.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={5}>
                           <div className="p-6 text-sm text-muted-foreground">No scenarios match your search.</div>
                         </TableCell>
                       </TableRow>

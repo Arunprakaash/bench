@@ -21,7 +21,22 @@ async def list_agents(
 ):
     query = select(Agent).where(Agent.owner_user_id == current_user.id).order_by(Agent.updated_at.desc())
     result = await db.execute(query)
-    return list(result.scalars().all())
+    items = result.scalars().all()
+    return [
+        AgentListItem(
+            id=a.id,
+            name=a.name,
+            description=a.description,
+            module=a.module,
+            agent_class=a.agent_class,
+            tags=a.tags,
+            owner_user_id=a.owner_user_id,
+            owner_display_name=current_user.display_name or current_user.email,
+            created_at=a.created_at,
+            updated_at=a.updated_at,
+        )
+        for a in items
+    ]
 
 
 @router.get("/{agent_id}", response_model=AgentResponse)

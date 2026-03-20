@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   getStatus,
   formatDuration,
-  formatRelativeTime,
+  formatDateTime,
   paginate,
 } from "@/lib/table-helpers";
 import { withFrom } from "@/lib/nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { Search } from "@/lib/icons";
+import { Calendar, Search } from "@/lib/icons";
 import type { TestRunListItem } from "@/lib/api";
 
 const PAGE_SIZE = 10;
@@ -41,7 +42,10 @@ interface RecentRunsProps {
 export function RecentRuns({ runs }: RecentRunsProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   const filtered = useMemo(() => {
     let result = runs;
@@ -54,8 +58,31 @@ export function RecentRuns({ runs }: RecentRunsProps) {
         (r.scenario_name || "").toLowerCase().includes(q),
       );
     }
+    if (dateFilter) {
+      result = result.filter((r) => {
+        const d = new Date(r.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter(
+        (r) => (r.owner_display_name || "Unknown") === creatorFilter,
+      );
+    }
     return result;
-  }, [runs, search, statusFilter]);
+  }, [runs, search, statusFilter, dateFilter, creatorFilter]);
+  const creatorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(runs.map((r) => r.owner_display_name || "Unknown")),
+      ).sort(),
+    [runs],
+  );
+  const statusFilterLabel =
+    statusFilter === "all" ? "Status: All" : `Status: ${statusFilter}`;
+  const creatorFilterLabel =
+    creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`;
 
   const paged = useMemo(
     () => paginate(filtered, page, PAGE_SIZE),
@@ -87,7 +114,8 @@ export function RecentRuns({ runs }: RecentRunsProps) {
         </div>
         <Select value={statusFilter} onValueChange={handleStatus}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All statuses" />
+            <SelectValue className="sr-only" placeholder="Status" />
+            <span className="line-clamp-1">{statusFilterLabel}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
@@ -96,6 +124,66 @@ export function RecentRuns({ runs }: RecentRunsProps) {
             <SelectItem value="error">Error</SelectItem>
           </SelectContent>
         </Select>
+        <div className="relative w-[180px]">
+          <Input
+            ref={dateInputRef}
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+          />
+          <button
+            type="button"
+            aria-label="Open date picker"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+        </div>
+        <Select
+          value={creatorFilter}
+          onValueChange={(v) => {
+            setCreatorFilter(v ?? "all");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Created by" />
+            <span className="line-clamp-1">{creatorFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All creators</SelectItem>
+            {creatorOptions.map((creator) => (
+              <SelectItem key={creator} value={creator}>
+                {creator}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            setStatusFilter("all");
+            setDateFilter("");
+            setCreatorFilter("all");
+            setPage(1);
+          }}
+        >
+          Clear filters
+        </Button>
       </div>
 
       {filtered.length === 0 ? (
@@ -121,7 +209,8 @@ export function RecentRuns({ runs }: RecentRunsProps) {
                 <TableHead>Scenario</TableHead>
                 <TableHead className="w-[100px] text-center">Turns</TableHead>
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
-                <TableHead className="w-[100px] text-right">Time</TableHead>
+                <TableHead className="w-[170px] text-right">Created By</TableHead>
+                <TableHead className="w-[190px] text-right">Date & Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -160,7 +249,12 @@ export function RecentRuns({ runs }: RecentRunsProps) {
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
-                        {formatRelativeTime(run.created_at)}
+                        {run.owner_display_name || "Unknown"}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      <Link href={href} className={`block ${FOCUS_LINK}`}>
+                        {formatDateTime(run.created_at)}
                       </Link>
                     </TableCell>
                   </TableRow>

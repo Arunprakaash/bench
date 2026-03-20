@@ -8,7 +8,6 @@ import {
   ClockCircleOutlined,
   CloseCircleFilled,
   CloseOutlined,
-  DashboardOutlined,
   ProductOutlined,
   DownOutlined,
   DeleteOutlined,
@@ -43,6 +42,9 @@ import {
   WarningOutlined,
   BgColorsOutlined,
   UserOutlined,
+  BellOutlined,
+  RadiusSettingOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 
 type IconProps = { className?: string };
@@ -87,6 +89,9 @@ export const TrendingDown = ArrowDownOutlined;
 export const TrendingUp = ArrowUpOutlined;
 export const Upload = UploadOutlined;
 export const User = UserOutlined;
+export const Bell = BellOutlined;
+export const RadiusSetting = RadiusSettingOutlined;
+export const Calendar = CalendarOutlined;
 export const Wand2 = BgColorsOutlined;
 export const Wrench = ToolOutlined;
 export const X = CloseOutlined;

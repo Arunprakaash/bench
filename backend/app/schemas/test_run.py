@@ -77,6 +77,8 @@ class TestRunListResponse(BaseModel):
     id: UUID
     scenario_id: UUID
     scenario_name: str | None = None
+    owner_user_id: UUID | None = None
+    owner_display_name: str | None = None
     suite_id: UUID | None
     agent_id: UUID | None = None
     agent_version_id: UUID | None = None

@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
+import asyncio
 
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import agents, chat, dev, failures, runs, scenarios, suites, auth
+from app.api import agents, auth, automation, chat, dev, failures, runs, scenarios, suites
 from app.config import settings
 from app.database import Base, engine
 import app.models  # noqa: F401
@@ -13,6 +14,21 @@ import app.models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    scheduler_stop = asyncio.Event()
+    scheduler_task: asyncio.Task | None = None
+
+    async def _schedule_loop():
+        while not scheduler_stop.is_set():
+            try:
+                await automation.process_due_schedules()
+            except Exception:
+                # Keep scheduler alive despite processing errors.
+                pass
+            try:
+                await asyncio.wait_for(scheduler_stop.wait(), timeout=30.0)
+            except TimeoutError:
+                continue
+
     async with engine.begin() as conn:
         # Lightweight forward-only migrations (we don't ship Alembic here).
         # Safe to run repeatedly on startup.
@@ -260,7 +276,11 @@ async def lifespan(app: FastAPI):
         ):
             await conn.execute(text(index_sql))
         await conn.run_sync(Base.metadata.create_all)
+    scheduler_task = asyncio.create_task(_schedule_loop())
     yield
+    scheduler_stop.set()
+    if scheduler_task:
+        await scheduler_task
     await engine.dispose()
 
 
@@ -303,6 +323,7 @@ app.include_router(runs.router, prefix="/api/runs", tags=["runs"])
 app.include_router(failures.router, prefix="/api/failures", tags=["failures"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(automation.router, prefix="/api/automation", tags=["automation"])
 app.include_router(dev.router, prefix="/api/dev", tags=["dev"])
 
 sio = socketio.AsyncServer(

@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { api, type Suite, type TestRunListItem } from "@/lib/api";
-import { getStatus, formatDuration, formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { getStatus, formatDuration, formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ import {
   Loader2,
   Search,
   Trash2,
+  Calendar,
 } from "@/lib/icons";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 
@@ -528,28 +529,37 @@ function RunsTable({
 
   const qFromUrl = getParam(searchParams, "history_q") ?? "";
   const statusFromUrl = getParam(searchParams, "history_status") ?? "all";
+  const dateFromUrl = getParam(searchParams, "history_date") ?? "";
+  const creatorFromUrl = getParam(searchParams, "history_creator") ?? "all";
   const pageFromUrl = getIntParam(searchParams, "history_page", 1);
   const pageSizeFromUrl = getIntParam(searchParams, "history_pageSize", DEFAULT_PAGE_SIZE);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!showFilters && !showPagination) return;
     setSearch(qFromUrl);
     setStatusFilter(statusFromUrl);
+    setDateFilter(dateFromUrl);
+    setCreatorFilter(creatorFromUrl);
     setPage(pageFromUrl);
     setPageSize(pageSizeFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qFromUrl, statusFromUrl, pageFromUrl, pageSizeFromUrl, showFilters, showPagination]);
+  }, [qFromUrl, statusFromUrl, dateFromUrl, creatorFromUrl, pageFromUrl, pageSizeFromUrl, showFilters, showPagination]);
 
   const syncUrl = useCallback(
-    (next: { q?: string; status?: string; page?: number; pageSize?: number }) => {
+    (next: { q?: string; status?: string; date?: string; creator?: string; page?: number; pageSize?: number }) => {
       const sp = new URLSearchParams(searchParams.toString());
       setOrDelete(sp, "history_q", next.q);
       setOrDelete(sp, "history_status", next.status && next.status !== "all" ? next.status : null);
+      setOrDelete(sp, "history_date", next.date || null);
+      setOrDelete(sp, "history_creator", next.creator && next.creator !== "all" ? next.creator : null);
       setOrDelete(sp, "history_page", next.page && next.page !== 1 ? next.page : null);
       setOrDelete(
         sp,
@@ -571,8 +581,22 @@ function RunsTable({
       const q = search.toLowerCase();
       result = result.filter((r) => (r.scenario_name || "").toLowerCase().includes(q));
     }
+    if (dateFilter) {
+      result = result.filter((r) => {
+        const d = new Date(r.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter((r) => (r.owner_display_name || "Unknown") === creatorFilter);
+    }
     return result;
-  }, [runs, search, statusFilter]);
+  }, [runs, search, statusFilter, dateFilter, creatorFilter]);
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(runs.map((r) => r.owner_display_name || "Unknown"))).sort(),
+    [runs],
+  );
 
   const paged = useMemo(
     () => (showPagination ? paginate(filtered, page, pageSize) : filtered),
@@ -582,13 +606,13 @@ function RunsTable({
   const handleSearch = (v: string) => {
     setSearch(v);
     setPage(1);
-    syncUrl({ q: v, status: statusFilter, page: 1, pageSize });
+    syncUrl({ q: v, status: statusFilter, date: dateFilter, creator: creatorFilter, page: 1, pageSize });
   };
   const handleStatus = (v: string | null) => {
     const next = v ?? "all";
     setStatusFilter(next);
     setPage(1);
-    syncUrl({ q: search, status: next, page: 1, pageSize });
+    syncUrl({ q: search, status: next, date: dateFilter, creator: creatorFilter, page: 1, pageSize });
   };
 
   return (
@@ -606,7 +630,10 @@ function RunsTable({
           </div>
           <Select value={statusFilter} onValueChange={handleStatus}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue className="sr-only" placeholder="Status" />
+              <span className="line-clamp-1">
+                {statusFilter === "all" ? "Status: All" : `Status: ${statusFilter}`}
+              </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
@@ -615,6 +642,73 @@ function RunsTable({
               <SelectItem value="error">Error</SelectItem>
             </SelectContent>
           </Select>
+          <div className="relative w-[180px]">
+            <Input
+              ref={dateInputRef}
+              type="date"
+              value={dateFilter}
+              onChange={(e) => {
+                const next = e.target.value;
+                setDateFilter(next);
+                setPage(1);
+                syncUrl({ q: search, status: statusFilter, date: next, creator: creatorFilter, page: 1, pageSize });
+              }}
+              className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+            />
+            <button
+              type="button"
+              aria-label="Open date picker"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                const input = dateInputRef.current;
+                if (!input) return;
+                if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                  (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+                } else {
+                  input.focus();
+                }
+              }}
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+          </div>
+          <Select
+            value={creatorFilter}
+            onValueChange={(v) => {
+              const next = v ?? "all";
+              setCreatorFilter(next);
+              setPage(1);
+              syncUrl({ q: search, status: statusFilter, date: dateFilter, creator: next, page: 1, pageSize });
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue className="sr-only" placeholder="Created by" />
+              <span className="line-clamp-1">
+                {creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All creators</SelectItem>
+              {creatorOptions.map((creator) => (
+                <SelectItem key={creator} value={creator}>
+                  {creator}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("all");
+              setDateFilter("");
+              setCreatorFilter("all");
+              setPage(1);
+              syncUrl({ q: "", status: "all", date: "", creator: "all", page: 1, pageSize });
+            }}
+          >
+            Clear filters
+          </Button>
         </div>
       )}
       {filtered.length === 0 ? (
@@ -630,12 +724,12 @@ function RunsTable({
               pageSize={pageSize}
               onPageChange={(p) => {
                 setPage(p);
-                syncUrl({ q: search, status: statusFilter, page: p, pageSize });
+                syncUrl({ q: search, status: statusFilter, date: dateFilter, creator: creatorFilter, page: p, pageSize });
               }}
               onPageSizeChange={(s) => {
                 setPageSize(s);
                 setPage(1);
-                syncUrl({ q: search, status: statusFilter, page: 1, pageSize: s });
+                syncUrl({ q: search, status: statusFilter, date: dateFilter, creator: creatorFilter, page: 1, pageSize: s });
               }}
             />
           )}
@@ -646,7 +740,8 @@ function RunsTable({
                 <TableHead>Scenario</TableHead>
                 <TableHead className="w-[100px] text-center">Turns</TableHead>
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
-                <TableHead className="w-[140px] text-right">Date</TableHead>
+                <TableHead className="w-[170px] text-right">Created By</TableHead>
+                <TableHead className="w-[190px] text-right">Date & Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -682,7 +777,12 @@ function RunsTable({
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
-                        {formatDate(run.created_at)}
+                        {run.owner_display_name || "Unknown"}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      <Link href={href} className={`block ${FOCUS_LINK}`}>
+                        {formatDateTime(run.created_at)}
                       </Link>
                     </TableCell>
                   </TableRow>

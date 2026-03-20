@@ -30,7 +30,8 @@ async def list_runs(
     db: AsyncSession = Depends(get_db),
 ):
     query = (
-        select(TestRun)
+        select(TestRun, User.display_name, User.email)
+        .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
         .where(TestRun.owner_user_id == current_user.id)
         .order_by(TestRun.created_at.desc())
@@ -46,23 +47,25 @@ async def list_runs(
         query = query.where(TestRun.status == status)
 
     result = await db.execute(query)
-    runs = result.scalars().all()
+    rows = result.all()
 
     return [
         TestRunListResponse(
-            id=r.id,
-            scenario_id=r.scenario_id,
-            scenario_name=r.scenario.name if r.scenario else None,
-            suite_id=r.suite_id,
-            agent_id=r.agent_id,
-            agent_version_id=r.agent_version_id,
-            status=r.status,
-            duration_ms=r.duration_ms,
-            passed_turns=sum(1 for tr in r.turn_results if tr.passed),
-            total_turns=len(r.turn_results),
-            created_at=r.created_at,
+            id=run.id,
+            scenario_id=run.scenario_id,
+            scenario_name=run.scenario.name if run.scenario else None,
+            owner_user_id=run.owner_user_id,
+            owner_display_name=display_name or email,
+            suite_id=run.suite_id,
+            agent_id=run.agent_id,
+            agent_version_id=run.agent_version_id,
+            status=run.status,
+            duration_ms=run.duration_ms,
+            passed_turns=sum(1 for tr in run.turn_results if tr.passed),
+            total_turns=len(run.turn_results),
+            created_at=run.created_at,
         )
-        for r in runs
+        for run, display_name, email in rows
     ]
 
 
@@ -151,27 +154,30 @@ async def create_suite_run(
     background_tasks.add_task(_run_suite_parallel, ids, str(suite.id))
 
     result = await db.execute(
-        select(TestRun)
+        select(TestRun, User.display_name, User.email)
+        .outerjoin(User, User.id == TestRun.owner_user_id)
         .options(selectinload(TestRun.scenario), selectinload(TestRun.turn_results))
         .where(TestRun.id.in_(ids))
     )
-    runs = result.scalars().all()
+    rows = result.all()
 
     return [
         TestRunListResponse(
-            id=r.id,
-            scenario_id=r.scenario_id,
-            scenario_name=r.scenario.name if r.scenario else None,
-            suite_id=r.suite_id,
-            agent_id=r.agent_id,
-            agent_version_id=r.agent_version_id,
-            status=r.status,
-            duration_ms=r.duration_ms,
-            passed_turns=sum(1 for tr in r.turn_results if tr.passed),
-            total_turns=len(r.turn_results),
-            created_at=r.created_at,
+            id=run.id,
+            scenario_id=run.scenario_id,
+            scenario_name=run.scenario.name if run.scenario else None,
+            owner_user_id=run.owner_user_id,
+            owner_display_name=display_name or email,
+            suite_id=run.suite_id,
+            agent_id=run.agent_id,
+            agent_version_id=run.agent_version_id,
+            status=run.status,
+            duration_ms=run.duration_ms,
+            passed_turns=sum(1 for tr in run.turn_results if tr.passed),
+            total_turns=len(run.turn_results),
+            created_at=run.created_at,
         )
-        for r in runs
+        for run, display_name, email in rows
     ]
 
 

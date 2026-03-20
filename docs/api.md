@@ -20,6 +20,7 @@ All endpoints that create/update/delete require a valid JWT token.
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
+- `PATCH /api/auth/me`
 - `POST /api/auth/logout`
 
 ## Scenarios
@@ -56,4 +57,12 @@ All endpoints that create/update/delete require a valid JWT token.
 ## Failures
 
 - `GET /api/failures`
+
+## Automation
+
+- `GET /api/automation/schedules`
+- `POST /api/automation/schedules`
+- `DELETE /api/automation/schedules/{schedule_id}`
+- `GET /api/automation/alerts`
+- `POST /api/automation/alerts/{alert_id}/ack`
 

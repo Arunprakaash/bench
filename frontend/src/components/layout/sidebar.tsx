@@ -21,9 +21,12 @@ import {
   Play,
   FolderOpen,
   FailureInbox,
+  RadiusSetting,
   Settings,
   User,
+  Bell,
 } from "@/lib/icons";
+import { formatRelativeTime } from "@/lib/table-helpers";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
 import { getInitialDarkFromStorage } from "@/lib/theme";
 
@@ -34,6 +37,7 @@ const navItems = [
   { href: "/suites", label: "Suites", icon: FolderOpen },
   { href: "/failures", label: "Failures", icon: FailureInbox },
   { href: "/runs", label: "Test Runs", icon: Play },
+  { href: "/automation", label: "Automation", icon: RadiusSetting },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
@@ -43,11 +47,28 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const [dark, setDark] = useState(false);
   const [authUser, setAuthUser] = useState<AuthMe | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [alerts, setAlerts] = useState<Array<{ id: string; title: string; detail: string | null; run_id: string; created_at: string }>>([]);
 
   useEffect(() => {
     // Theme class is synced from AppShell on load; keep toggle UI in sync.
     setDark(getInitialDarkFromStorage());
   }, []);
+
+  const loadAlerts = async () => {
+    try {
+      const openAlerts = await api.automation.listAlerts(false);
+      setAlerts(openAlerts.slice(0, 5));
+    } catch {
+      setAlerts([]);
+    }
+  };
+
+  useEffect(() => {
+    void loadAlerts();
+  }, []);
+  const topNotifications = alerts.slice(0, 5);
+  const unreadCountLabel = alerts.length > 9 ? "9+" : String(alerts.length);
 
   useEffect(() => {
     const token = getAuthToken();
@@ -149,6 +170,122 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           collapsed ? "flex-col items-center gap-2" : "flex-col gap-1",
         )}
       >
+        <Dialog open={alertsOpen} onOpenChange={setAlertsOpen} modal={false}>
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 relative"
+                    aria-label="Notifications"
+                    aria-expanded={alertsOpen}
+                    aria-haspopup="dialog"
+                    onClick={() => {
+                      setAlertsOpen(true);
+                      void loadAlerts();
+                    }}
+                  >
+                    <Bell className="h-5 w-5" />
+                    {alerts.length > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center">
+                        {unreadCountLabel}
+                      </span>
+                    )}
+                  </Button>
+                }
+              />
+              <TooltipContent side="right">Notifications</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 relative"
+              aria-expanded={alertsOpen}
+              aria-haspopup="dialog"
+              onClick={() => {
+                setAlertsOpen(true);
+                void loadAlerts();
+              }}
+            >
+              <Bell className="h-5 w-5" />
+              Notifications
+              {alerts.length > 0 && (
+                <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] leading-5 text-white text-center">
+                  {unreadCountLabel}
+                </span>
+              )}
+            </Button>
+          )}
+
+          <DialogContent
+            hideOverlay
+            className={cn(
+              "!top-auto !left-[calc(4rem+0.5rem)] !translate-x-0 !translate-y-0 bottom-4",
+              !collapsed && "!left-[calc(16rem+0.5rem)]",
+              "z-50 w-[min(360px,calc(100vw-5rem))] max-w-[360px] gap-3 p-3 sm:max-w-[360px] rounded-lg",
+            )}
+          >
+            <DialogHeader>
+              <DialogTitle>Notifications</DialogTitle>
+              <DialogDescription>Latest activity and alerts.</DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between">
+              <Link href="/notifications" className="text-xs text-primary hover:underline">
+                View all
+              </Link>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={alerts.length === 0}
+                onClick={async () => {
+                  await Promise.all(alerts.map((alert) => api.automation.acknowledgeAlert(alert.id)));
+                  await loadAlerts();
+                }}
+              >
+                Mark all as read
+              </Button>
+            </div>
+            {alerts.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-2">No new notifications.</div>
+            ) : (
+              <div className="space-y-2">
+                {topNotifications.map((alert) => (
+                  <div key={alert.id} className="rounded-md border p-2 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium truncate">{alert.title}</div>
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Alert</span>
+                    </div>
+                    {alert.detail && <div className="text-xs text-muted-foreground truncate">{alert.detail}</div>}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{formatRelativeTime(alert.created_at)}</span>
+                      <div className="flex items-center gap-1">
+                        <Link href={`/runs/${alert.run_id}`}>
+                          <Button size="xs" variant="outline">View</Button>
+                        </Link>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={async () => {
+                            await api.automation.acknowledgeAlert(alert.id);
+                            await loadAlerts();
+                          }}
+                        >
+                          Read
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Controlled open + direct button clicks: DialogTrigger inside Tooltip breaks ref wiring for Base UI when collapsed. */}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen} modal={false}>
           {collapsed ? (

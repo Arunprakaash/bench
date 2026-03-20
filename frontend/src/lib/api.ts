@@ -70,6 +70,8 @@ export interface ScenarioListItem {
   tags: string[] | null;
   turn_count: number;
   version: number;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -91,6 +93,9 @@ export interface AgentListItem {
   module: string;
   agent_class: string;
   tags: string[] | null;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
+  created_at: string;
   updated_at: string;
 }
 
@@ -236,6 +241,8 @@ export interface TestRunListItem {
   id: string;
   scenario_id: string;
   scenario_name: string | null;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   suite_id: string | null;
   agent_id: string | null;
   agent_version_id?: string | null;
@@ -250,6 +257,8 @@ export interface FailureInboxItem {
   run_id: string;
   scenario_id: string;
   scenario_name: string | null;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   suite_id: string | null;
   agent_id: string | null;
   status: "failed" | "error";
@@ -299,8 +308,50 @@ export interface SuiteListItem {
   name: string;
   description: string | null;
   scenario_count: number;
+  scenario_ids?: string[];
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ScheduledRun {
+  id: string;
+  target_type: "scenario" | "suite";
+  scenario_id: string | null;
+  suite_id: string | null;
+  interval_minutes: number;
+  config: Record<string, unknown> | null;
+  is_active: boolean;
+  last_run_at: string | null;
+  next_run_at: string;
+  created_at: string;
+}
+
+export interface ScheduledRunCreate {
+  target_type: "scenario" | "suite";
+  scenario_id?: string;
+  suite_id?: string;
+  interval_minutes: number;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export interface ScheduledRunUpdate {
+  interval_minutes?: number;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export interface RegressionAlert {
+  id: string;
+  scenario_id: string | null;
+  run_id: string;
+  previous_run_id: string | null;
+  title: string;
+  detail: string | null;
+  is_acknowledged: boolean;
+  created_at: string;
 }
 
 export const api = {
@@ -398,5 +449,27 @@ export const api = {
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
     },
+  },
+  automation: {
+    listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),
+    getSchedule: (id: string) => request<ScheduledRun>(`/api/automation/schedules/${id}`),
+    createSchedule: (data: ScheduledRunCreate) =>
+      request<ScheduledRun>("/api/automation/schedules", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateSchedule: (id: string, data: ScheduledRunUpdate) =>
+      request<ScheduledRun>(`/api/automation/schedules/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    deleteSchedule: (id: string) =>
+      request<void>(`/api/automation/schedules/${id}`, { method: "DELETE" }),
+    listAlerts: (acknowledged?: boolean) =>
+      request<RegressionAlert[]>(
+        `/api/automation/alerts${acknowledged == null ? "" : `?acknowledged=${String(acknowledged)}`}`,
+      ),
+    acknowledgeAlert: (id: string) =>
+      request<RegressionAlert>(`/api/automation/alerts/${id}/ack`, { method: "POST" }),
   },
 };
