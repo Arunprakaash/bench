@@ -9,6 +9,7 @@ import {
   CloseCircleFilled,
   CloseOutlined,
   DashboardOutlined,
+  ProductOutlined,
   DownOutlined,
   DeleteOutlined,
   DownloadOutlined,
@@ -68,7 +69,7 @@ export const FolderOpen = NodeIndexOutlined;
 export const GitCompare = ApartmentOutlined;
 export const GripVertical = HolderOutlined;
 export const History = HistoryOutlined;
-export const LayoutDashboard = DashboardOutlined;
+export const LayoutDashboard = ProductOutlined;
 export const Loader2 = LoadingOutlined;
 export const MessageSquare = MessageOutlined;
 export const MessageSquarePlus = MessageOutlined;
