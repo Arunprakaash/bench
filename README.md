@@ -1,7 +1,52 @@
 # AgentBench
 
-A visual testing and evaluation platform for voice agents (based on LiveKit's agent testing framework).
-Create multi-turn scenarios, run them against your agent, and review turn-by-turn events + judge verdicts in real time.
+AgentBench is a visual testing and evaluation platform for voice agents (based on LiveKit's agent testing framework).
+
+It helps teams automate multi-turn test scenarios, run regressions quickly, and debug agent behavior with turn-level verdicts.
+
+## Why This Product
+
+Teams building agents usually struggle with:
+
+- brittle manual testing
+- no repeatable regression flow
+- weak visibility into why a run passed or failed
+
+AgentBench solves this by letting you define scenarios once, run them repeatedly, and inspect failures with structured evidence.
+
+## Core Use Case (End-to-End)
+
+### 1) Track quality at a glance
+
+Use the dashboard to monitor overall run health and activity.
+
+![Dashboard](docs/screenshots/readme/dashboard.png)
+
+### 2) Build reusable multi-turn scenarios
+
+Create scenarios with user turns and expectations (messages, tool calls, handoffs).
+
+![Scenarios List](docs/screenshots/readme/scenarios-list.png)
+
+### 3) Inspect and edit scenario details
+
+Tune prompts, expectations, and turn flows before running tests.
+
+![Scenario Detail](docs/screenshots/readme/scenario-detail.png)
+
+### 4) Run grouped regression suites
+
+Bundle scenarios into suites to validate complete workflows in one run.
+
+![Suite Detail](docs/screenshots/readme/suite-detail.png)
+
+### 5) Review run results and triage failures
+
+Analyze run history, pass/fail trends, and failure details for fast iteration.
+
+![Runs List](docs/screenshots/readme/runs-list.png)
+
+![Failures](docs/screenshots/readme/failures.png)
 
 ## Features
 
@@ -21,7 +66,7 @@ Create multi-turn scenarios, run them against your agent, and review turn-by-tur
 docker compose up -d --build
 ```
 
-2. (Recommended) Seed demo data (this wipes and re-creates test data):
+2. Seed demo data (this wipes and re-creates test data):
 
 ```bash
 docker compose exec backend python scripts/reset_and_seed.py
@@ -49,14 +94,13 @@ Postman collection:
 
 - `backend/postman/AgentBench-API.postman_collection.json`
 
-You can browse the API schema in the backend Swagger UI:
+Swagger UI:
 
 - `/api/docs`
 
 For full docs, see `docs/`.
 
-## Notes
+## Screenshot Assets
 
-- The backend performs lightweight schema initialization at startup (so you can typically iterate without manual migrations).
-- All UI state changes are driven by the backend REST APIs; real-time execution updates are streamed over Socket.IO.
-
+- Key README screenshots: `docs/screenshots/readme/`
+- Additional product screenshots: `docs/screenshots/archive/`
