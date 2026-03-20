@@ -9,6 +9,7 @@ import {
   CloseCircleFilled,
   CloseOutlined,
   DashboardOutlined,
+  ProductOutlined,
   DownOutlined,
   DeleteOutlined,
   DownloadOutlined,
@@ -41,6 +42,7 @@ import {
   UploadOutlined,
   WarningOutlined,
   BgColorsOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 type IconProps = { className?: string };
@@ -67,7 +69,7 @@ export const FolderOpen = NodeIndexOutlined;
 export const GitCompare = ApartmentOutlined;
 export const GripVertical = HolderOutlined;
 export const History = HistoryOutlined;
-export const LayoutDashboard = DashboardOutlined;
+export const LayoutDashboard = ProductOutlined;
 export const Loader2 = LoadingOutlined;
 export const MessageSquare = MessageOutlined;
 export const MessageSquarePlus = MessageOutlined;
@@ -84,6 +86,7 @@ export const Trash2 = DeleteOutlined;
 export const TrendingDown = ArrowDownOutlined;
 export const TrendingUp = ArrowUpOutlined;
 export const Upload = UploadOutlined;
+export const User = UserOutlined;
 export const Wand2 = BgColorsOutlined;
 export const Wrench = ToolOutlined;
 export const X = CloseOutlined;

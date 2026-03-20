@@ -45,6 +45,6 @@ If you’re missing `OPENAI_API_KEY`, judge/evaluation steps may fail or be inco
 
 For quick manual testing, use:
 
-- Postman: `backend/postman/AgentBench-API.postman_collection.json`
+- Postman: `backend/postman/Bench-API.postman_collection.json`
 - Swagger: `/api/docs`
 

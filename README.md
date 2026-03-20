@@ -1,6 +1,6 @@
-# AgentBench
+# Bench
 
-AgentBench is a visual testing and evaluation platform for voice agents (based on LiveKit's agent testing framework).
+Bench is a visual testing and evaluation platform for voice agents (based on LiveKit's agent testing framework).
 
 It helps teams automate multi-turn test scenarios, run regressions quickly, and debug agent behavior with turn-level verdicts.
 
@@ -12,7 +12,7 @@ Teams building agents usually struggle with:
 - no repeatable regression flow
 - weak visibility into why a run passed or failed
 
-AgentBench solves this by letting you define scenarios once, run them repeatedly, and inspect failures with structured evidence.
+Bench solves this by letting you define scenarios once, run them repeatedly, and inspect failures with structured evidence.
 
 ## Core Use Case (End-to-End)
 
@@ -92,7 +92,7 @@ Common variables:
 
 Postman collection:
 
-- `backend/postman/AgentBench-API.postman_collection.json`
+- `backend/postman/Bench-API.postman_collection.json`
 
 Swagger UI:
 

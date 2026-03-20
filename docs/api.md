@@ -11,7 +11,7 @@ Swagger/OpenAPI:
 
 Postman collection:
 
-- `backend/postman/AgentBench-API.postman_collection.json`
+- `backend/postman/Bench-API.postman_collection.json`
 
 ## Auth
 

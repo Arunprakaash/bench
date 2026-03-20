@@ -1,8 +1,8 @@
-# AgentBench
+# Bench
 
 ## What is this?
 
-AgentBench is a visual testing and evaluation platform for voice agents.
+Bench is a visual testing and evaluation platform for voice agents.
 It lets you build multi-turn scenarios, run them against your agent, and review turn-by-turn events and judge verdicts.
 
 ## Quick links

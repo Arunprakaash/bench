@@ -54,6 +54,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UpdateMeRequest(BaseModel):
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+
 def _create_token(user: User) -> str:
     now = datetime.utcnow()
     exp = now + timedelta(days=7)
@@ -93,6 +98,20 @@ get_current_user = _get_current_user
 
 @router.get("/me")
 async def me(current_user: User = Depends(_get_current_user)):
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "avatar_url": current_user.avatar_url,
+    }
+
+
+@router.patch("/me")
+async def update_me(data: UpdateMeRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(_get_current_user)):
+    current_user.display_name = data.display_name
+    current_user.avatar_url = data.avatar_url
+    await db.commit()
+    await db.refresh(current_user)
     return {
         "id": str(current_user.id),
         "email": current_user.email,

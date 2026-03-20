@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Agent Testing Platform",
+  title: "Bench",
   description: "Testing & evaluation platform for LiveKit voice agents",
 };
 

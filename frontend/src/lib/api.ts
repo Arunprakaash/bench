@@ -280,6 +280,11 @@ export interface AuthTokenResponse {
   user: AuthSessionUser;
 }
 
+export interface AuthMeUpdate {
+  display_name?: string | null;
+  avatar_url?: string | null;
+}
+
 export interface Suite {
   id: string;
   name: string;
@@ -301,6 +306,8 @@ export interface SuiteListItem {
 export const api = {
   auth: {
     me: () => request<AuthMe>("/api/auth/me"),
+    updateMe: (data: AuthMeUpdate) =>
+      request<AuthMe>("/api/auth/me", { method: "PATCH", body: JSON.stringify(data) }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
     register: (data: { email: string; password: string; display_name?: string | null }) =>
       request<AuthTokenResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(data) }),
