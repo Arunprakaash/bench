@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { formatDate, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDateTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete } from "@/lib/nav";
 import { api, type ScenarioCreate } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/table-pagination";
-import { Download, Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/lib/icons";
+import { Calendar, Download, Plus, FlaskConical, Play, Search, Trash2, Upload } from "@/lib/icons";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -100,11 +100,15 @@ function ScenariosPageInner() {
 
   const qFromUrl = getParam(searchParams, "q") ?? "";
   const tagFromUrl = getParam(searchParams, "tag") ?? "all";
+  const agentFromUrl = getParam(searchParams, "agent") ?? "all";
   const pageFromUrl = getIntParam(searchParams, "page", 1);
   const pageSizeFromUrl = getIntParam(searchParams, "pageSize", DEFAULT_PAGE_SIZE);
 
   const [search, setSearch] = useState(qFromUrl);
   const [tagFilter, setTagFilter] = useState(tagFromUrl);
+  const [agentFilter, setAgentFilter] = useState(agentFromUrl);
+  const [dateFilter, setDateFilter] = useState("");
+  const [creatorFilter, setCreatorFilter] = useState("all");
   const [page, setPage] = useState(pageFromUrl);
   const [pageSize, setPageSize] = useState(pageSizeFromUrl);
   const [importOpen, setImportOpen] = useState(false);
@@ -117,20 +121,23 @@ function ScenariosPageInner() {
   const [deleting, setDeleting] = useState(false);
   const [running, setRunning] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSearch(qFromUrl);
     setTagFilter(tagFromUrl);
+    setAgentFilter(agentFromUrl);
     setPage(pageFromUrl);
     setPageSize(pageSizeFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qFromUrl, tagFromUrl, pageFromUrl, pageSizeFromUrl]);
+  }, [qFromUrl, tagFromUrl, agentFromUrl, pageFromUrl, pageSizeFromUrl]);
 
   const syncUrl = useCallback(
-    (next: { q?: string; tag?: string; page?: number; pageSize?: number }) => {
+    (next: { q?: string; tag?: string; agent?: string; page?: number; pageSize?: number }) => {
       const sp = new URLSearchParams(searchParams.toString());
       setOrDelete(sp, "q", next.q);
       setOrDelete(sp, "tag", next.tag && next.tag !== "all" ? next.tag : null);
+      setOrDelete(sp, "agent", next.agent && next.agent !== "all" ? next.agent : null);
       setOrDelete(sp, "page", next.page && next.page !== 1 ? next.page : null);
       setOrDelete(sp, "pageSize", next.pageSize && next.pageSize !== DEFAULT_PAGE_SIZE ? next.pageSize : null);
       const qs = sp.toString();
@@ -158,8 +165,35 @@ function ScenariosPageInner() {
       const q = search.toLowerCase();
       result = result.filter((s) => s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
     }
+    if (agentFilter !== "all") {
+      result = result.filter((s) => (s.agent_name ?? s.agent_module.split(".").pop() ?? "Unknown") === agentFilter);
+    }
+    if (dateFilter) {
+      result = result.filter((s) => {
+        const d = new Date(s.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return key === dateFilter;
+      });
+    }
+    if (creatorFilter !== "all") {
+      result = result.filter((s) => (s.owner_display_name || "Unknown") === creatorFilter);
+    }
     return result;
-  }, [scenarios, search, tagFilter]);
+  }, [scenarios, search, tagFilter, agentFilter, dateFilter, creatorFilter]);
+  const agentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(scenarios.map((s) => s.agent_name ?? s.agent_module.split(".").pop() ?? "Unknown")),
+      ).sort(),
+    [scenarios],
+  );
+  const creatorOptions = useMemo(
+    () => Array.from(new Set(scenarios.map((s) => s.owner_display_name || "Unknown"))).sort(),
+    [scenarios],
+  );
+  const tagFilterLabel = tagFilter === "all" ? "Tag: All" : `Tag: ${tagFilter}`;
+  const agentFilterLabel = agentFilter === "all" ? "Agent: All" : `Agent: ${agentFilter}`;
+  const creatorFilterLabel = creatorFilter === "all" ? "Created by: All" : `Created by: ${creatorFilter}`;
 
   const paged = useMemo(() => paginate(filtered, page, pageSize), [filtered, page, pageSize]);
   const pagedIds = useMemo(() => paged.map((scenario) => scenario.id), [paged]);
@@ -168,13 +202,13 @@ function ScenariosPageInner() {
   const handleSearch = (v: string) => {
     setSearch(v);
     setPage(1);
-    syncUrl({ q: v, tag: tagFilter, page: 1, pageSize });
+    syncUrl({ q: v, tag: tagFilter, agent: agentFilter, page: 1, pageSize });
   };
   const handleTag = (v: string | null) => {
     const next = v ?? "all";
     setTagFilter(next);
     setPage(1);
-    syncUrl({ q: search, tag: next, page: 1, pageSize });
+    syncUrl({ q: search, tag: next, agent: agentFilter, page: 1, pageSize });
   };
 
   useEffect(() => {
@@ -378,7 +412,8 @@ function ScenariosPageInner() {
         {allTags.length > 0 && (
           <Select value={tagFilter} onValueChange={handleTag}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All tags" />
+              <SelectValue className="sr-only" placeholder="Tag" />
+              <span className="line-clamp-1">{tagFilterLabel}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All tags</SelectItem>
@@ -390,6 +425,90 @@ function ScenariosPageInner() {
             </SelectContent>
           </Select>
         )}
+        <Select
+          value={agentFilter}
+          onValueChange={(v) => {
+            const next = v ?? "all";
+            setAgentFilter(next);
+            setPage(1);
+            syncUrl({ q: search, tag: tagFilter, agent: next, page: 1, pageSize });
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Agent" />
+            <span className="line-clamp-1">{agentFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All agents</SelectItem>
+            {agentOptions.map((agent) => (
+              <SelectItem key={agent} value={agent}>
+                {agent}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative w-[180px]">
+          <Input
+            ref={dateInputRef}
+            type="date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+          />
+          <button
+            type="button"
+            aria-label="Open date picker"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if (typeof (input as HTMLInputElement & { showPicker?: () => void }).showPicker === "function") {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </button>
+        </div>
+        <Select
+          value={creatorFilter}
+          onValueChange={(v) => {
+            setCreatorFilter(v ?? "all");
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue className="sr-only" placeholder="Created by" />
+            <span className="line-clamp-1">{creatorFilterLabel}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All creators</SelectItem>
+            {creatorOptions.map((creator) => (
+              <SelectItem key={creator} value={creator}>
+                {creator}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSearch("");
+            setTagFilter("all");
+            setAgentFilter("all");
+            setDateFilter("");
+            setCreatorFilter("all");
+            setPage(1);
+            syncUrl({ q: "", tag: "all", agent: "all", page: 1, pageSize });
+          }}
+        >
+          Clear filters
+        </Button>
       </div>
       {actionError && (
         <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-4 text-sm">
@@ -454,12 +573,12 @@ function ScenariosPageInner() {
             pageSize={pageSize}
             onPageChange={(p) => {
               setPage(p);
-              syncUrl({ q: search, tag: tagFilter, page: p, pageSize });
+              syncUrl({ q: search, tag: tagFilter, agent: agentFilter, page: p, pageSize });
             }}
             onPageSizeChange={(s) => {
               setPageSize(s);
               setPage(1);
-              syncUrl({ q: search, tag: tagFilter, page: 1, pageSize: s });
+              syncUrl({ q: search, tag: tagFilter, agent: agentFilter, page: 1, pageSize: s });
             }}
           />
           <Table>
@@ -476,7 +595,9 @@ function ScenariosPageInner() {
                 <TableHead>Agent</TableHead>
                 <TableHead className="w-[80px] text-center">Turns</TableHead>
                 <TableHead>Tags</TableHead>
-                <TableHead className="w-[140px] text-right">Updated</TableHead>
+                <TableHead className="w-[170px] text-right">Created By</TableHead>
+                <TableHead className="w-[190px] text-right">Created At</TableHead>
+                <TableHead className="w-[190px] text-right">Updated At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -538,7 +659,17 @@ function ScenariosPageInner() {
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/scenarios/${scenario.id}`} className={`block ${FOCUS_LINK}`}>
-                      {formatDate(scenario.updated_at)}
+                      {scenario.owner_display_name || "Unknown"}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    <Link href={`/scenarios/${scenario.id}`} className={`block ${FOCUS_LINK}`}>
+                      {formatDateTime(scenario.created_at)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    <Link href={`/scenarios/${scenario.id}`} className={`block ${FOCUS_LINK}`}>
+                      {formatDateTime(scenario.updated_at)}
                     </Link>
                   </TableCell>
                 </TableRow>

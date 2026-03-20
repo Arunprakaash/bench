@@ -70,6 +70,8 @@ export interface ScenarioListItem {
   tags: string[] | null;
   turn_count: number;
   version: number;
+  owner_user_id?: string | null;
+  owner_display_name?: string | null;
   created_at: string;
   updated_at: string;
 }

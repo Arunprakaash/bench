@@ -93,6 +93,8 @@ async def list_scenarios(
             tags=s.tags,
             turn_count=len(s.turns),
             version=s.version,
+            owner_user_id=s.owner_user_id,
+            owner_display_name=current_user.display_name or current_user.email,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
