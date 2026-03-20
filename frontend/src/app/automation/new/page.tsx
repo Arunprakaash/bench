@@ -33,6 +33,14 @@ export default function NewAutomationSchedulePage() {
 
   const scenarioOptions = useMemo(() => scenarios.map((s) => ({ value: s.id, label: s.name })), [scenarios]);
   const suiteOptions = useMemo(() => suites.map((s) => ({ value: s.id, label: s.name })), [suites]);
+  const selectedScenarioLabel = useMemo(
+    () => scenarioOptions.find((opt) => opt.value === scenarioId)?.label,
+    [scenarioOptions, scenarioId],
+  );
+  const selectedSuiteLabel = useMemo(
+    () => suiteOptions.find((opt) => opt.value === suiteId)?.label,
+    [suiteOptions, suiteId],
+  );
 
   const onCreate = async () => {
     const interval = Number(intervalMinutes);
@@ -60,7 +68,7 @@ export default function NewAutomationSchedulePage() {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Create Schedule</h1>
@@ -74,39 +82,48 @@ export default function NewAutomationSchedulePage() {
 
       {error && <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-4 text-sm">{error}</div>}
 
-      <div className="border rounded-lg p-5">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
+      <div className="border rounded-lg p-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <div className="space-y-2 lg:col-span-2">
             <Label>Target type</Label>
             <Select value={targetType} onValueChange={(v) => setTargetType(v as "scenario" | "suite")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="scenario">Scenario</SelectItem>
                 <SelectItem value="suite">Suite</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 lg:col-span-7">
             <Label>{targetType === "scenario" ? "Scenario" : "Suite"}</Label>
             {targetType === "scenario" ? (
               <Select value={scenarioId} onValueChange={setScenarioId}>
-                <SelectTrigger><SelectValue placeholder="Select scenario" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue className="sr-only" placeholder="Select scenario" />
+                  <span className="line-clamp-1">{selectedScenarioLabel ?? "Select scenario"}</span>
+                </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {scenarioOptions.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  {scenarioOptions.map((opt) => <SelectItem key={opt.value} value={opt.value} className="truncate">{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (
               <Select value={suiteId} onValueChange={setSuiteId}>
-                <SelectTrigger><SelectValue placeholder="Select suite" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue className="sr-only" placeholder="Select suite" />
+                  <span className="line-clamp-1">{selectedSuiteLabel ?? "Select suite"}</span>
+                </SelectTrigger>
                 <SelectContent className="max-h-80">
-                  {suiteOptions.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                  {suiteOptions.map((opt) => <SelectItem key={opt.value} value={opt.value} className="truncate">{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 lg:col-span-3">
             <Label>Interval (minutes)</Label>
             <Input value={intervalMinutes} onChange={(e) => setIntervalMinutes(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Minimum interval is 5 minutes.
+            </p>
           </div>
         </div>
       </div>
