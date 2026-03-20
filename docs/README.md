@@ -13,3 +13,4 @@ It lets you build multi-turn scenarios, run them against your agent, and review 
 - Developer guide: [`developer-guide.md`](./developer-guide.md)
 - Agent connector RFC: [`agent-connector-rfc.md`](./agent-connector-rfc.md)
 - HTTP JSON agent template: [`http-json-agent-template.md`](./http-json-agent-template.md)
+- External agent integration: [`external-agent-integration.md`](./external-agent-integration.md)
