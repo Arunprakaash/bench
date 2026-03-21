@@ -70,7 +70,7 @@ This keeps judge/evaluation logic provider-agnostic.
 
 Add manifest-like fields for each agent:
 
-- `provider_type`: `local_python | http_json | openai_responses | livekit_realtime | queue_worker`
+- `provider_type`: `local_python | rest_api | openai_responses | livekit_realtime | queue_worker`
 - `connection_config` (JSON): endpoint/module/options
 - `capabilities` (JSON): `text`, `voice`, `tool_calling`, `streaming`, `multimodal`
 - `auth_config` (JSON): reference to encrypted secret or token policy
@@ -124,7 +124,7 @@ Notes:
 - Wrap existing dynamic import + LiveKit session path.
 - Keeps current behavior while moving behind interface.
 
-### B) `http_json` (New)
+### B) `rest_api` (New)
 
 - Calls remote agent endpoint via HTTP.
 - Supports request/response and optional server-sent events stream.
@@ -189,7 +189,7 @@ This preserves reproducibility and debugging.
 
 ### Phase 2: Remote text agents
 
-1. Add `http_json` connector.
+1. Add `rest_api` connector.
 2. Add API/UI fields for provider selection + connection config.
 3. Add connector health check endpoint (`/api/agents/{id}/connection-test`).
 

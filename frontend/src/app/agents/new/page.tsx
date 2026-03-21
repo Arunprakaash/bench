@@ -73,7 +73,7 @@ export default function NewAgentPage() {
   const [connectionConfigText, setConnectionConfigText] = useState("{}");
   const [capabilitiesText, setCapabilitiesText] = useState("{}");
   const [authConfigText, setAuthConfigText] = useState("{}");
-  const isRestConnector = providerType === "http_json";
+  const isRestConnector = providerType === "rest_api";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +187,7 @@ export default function NewAgentPage() {
               onValueChange={(v) => {
                 if (!v) return;
                 setProviderType(v);
-                if (v === "http_json" && connectionConfigText.trim() === "{}") {
+                if (v === "rest_api" && connectionConfigText.trim() === "{}") {
                   setConnectionConfigText(HTTP_JSON_CONNECTION_TEMPLATE);
                 }
               }}
@@ -197,17 +197,12 @@ export default function NewAgentPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="local_python">local_python</SelectItem>
-                <SelectItem value="http_json">REST (HTTP JSON)</SelectItem>
+                <SelectItem value="rest_api">REST API</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-        {isRestConnector ? (
-          <div className="rounded-lg border bg-muted/20 p-3 text-sm text-muted-foreground">
-            REST connector auto-uses internal adapter identifiers (`module:{" "}
-            {REST_CONNECTOR_MODULE}`, `class: {REST_CONNECTOR_CLASS}`).
-          </div>
-        ) : (
+        {!isRestConnector && (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="agent-module">Module</Label>

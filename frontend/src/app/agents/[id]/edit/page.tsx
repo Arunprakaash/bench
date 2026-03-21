@@ -64,7 +64,7 @@ export default function EditAgentPage() {
   const [authConfigText, setAuthConfigText] = useState("{}");
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
-  const isRestConnector = providerType === "http_json";
+  const isRestConnector = providerType === "rest_api";
 
   useEffect(() => {
     if (!id) return;
@@ -251,7 +251,7 @@ export default function EditAgentPage() {
               onValueChange={(v) => {
                 if (!v) return;
                 setProviderType(v);
-                if (v === "http_json" && connectionConfigText.trim() === "{}") {
+                if (v === "rest_api" && connectionConfigText.trim() === "{}") {
                   setConnectionConfigText(
                     JSON.stringify(
                       {
@@ -270,17 +270,12 @@ export default function EditAgentPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="local_python">local_python</SelectItem>
-                <SelectItem value="http_json">REST (HTTP JSON)</SelectItem>
+                <SelectItem value="rest_api">REST API</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-        {isRestConnector ? (
-          <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-            REST connector auto-uses internal adapter identifiers (`module:{" "}
-            {REST_CONNECTOR_MODULE}`, `class: {REST_CONNECTOR_CLASS}`).
-          </div>
-        ) : (
+        {!isRestConnector && (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="agent-module">Module</Label>

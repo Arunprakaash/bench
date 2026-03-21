@@ -1,6 +1,6 @@
 # External Agent Integration Guide
 
-This guide explains how to connect any external agent service to Bench using the `http_json` connector.
+This guide explains how to connect any external agent service to Bench using the `REST API` connector.
 
 Use this as the implementation reference for new teams integrating their own app/agent into Bench.
 
@@ -19,7 +19,7 @@ You only need an adapter endpoint in your app. Core agent logic can remain uncha
 
 Create an agent in Bench with:
 
-- `provider_type`: `http_json`
+- `provider_type`: `rest_api`
 - `connection_config.endpoint`: your turn endpoint (required)
 - `connection_config.method`: typically `POST`
 - `connection_config.events_path`: usually `events`
@@ -30,7 +30,10 @@ Reference payload: [http-json-agent-template.md](./http-json-agent-template.md)
 
 ## 3) Request Contract (Bench -> Your App)
 
-Bench sends this body per turn:
+Bench sends this body per turn.
+
+The keys below are Bench's canonical connector contract and remain stable across integrations.
+External services should adapt to these keys.
 
 ```json
 {
@@ -40,6 +43,27 @@ Bench sends this body per turn:
   "judge_model": "gpt-4o-mini",
   "agent_args": {},
   "mock_tools": null
+}
+```
+
+Notes:
+
+- Bench does not send alias/fallback keys like `message` or `history`.
+- `connection_config.payload` is merged into every turn request and is intended for static integration fields.
+- Bench-owned canonical keys (`user_input`, `chat_history`, `llm_model`, `judge_model`, `agent_args`, `mock_tools`) are preserved by Bench.
+
+Example for static custom fields:
+
+```json
+{
+  "connection_config": {
+    "endpoint": "https://your-app.example.com/bench/run",
+    "method": "POST",
+    "payload": {
+      "sia_agent_id": "agent_123",
+      "ai_assessment_type": "fixed"
+    }
+  }
 }
 ```
 
@@ -78,6 +102,11 @@ Implement a thin adapter endpoint in your app:
 
 Do not rewrite your core agent. Keep translation in one dedicated adapter route/module.
 
+`connection_config.payload` vs `agent_args`:
+
+- Use `connection_config.payload` for static connector metadata (routing/integration identity, e.g. `sia_agent_id`).
+- Use `agent_args` for scenario-specific behavior you want tracked and versioned in tests.
+
 ## 6) Recommended API Endpoints In Your App
 
 - `POST /bench/run` (or equivalent): Bench turn endpoint
@@ -85,7 +114,7 @@ Do not rewrite your core agent. Keep translation in one dedicated adapter route/
 
 ## 7) End-to-End Testing Flow
 
-1. Create Bench agent (`provider_type=http_json`).
+1. Create Bench agent (`provider_type=rest_api`).
 2. Run Bench connection test:
    - `POST /api/agents/{agent_id}/connection-test`
 3. Create a simple scenario with one message expectation.

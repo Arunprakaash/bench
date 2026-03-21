@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.runner.connectors.base import TurnExecutionResult
+from app.runner.simple_llm_judge import evaluate_intent
 
 
 def _headers_from_config(connection_config: dict[str, Any]) -> dict[str, str]:
@@ -75,13 +76,20 @@ class _SimpleMessageAssertion:
     def __init__(self, event: dict[str, Any]):
         self._event = event
 
-    async def judge(self, judge_llm: Any, intent: str):  # noqa: ARG002
-        # Lightweight fallback for non-LiveKit connectors.
+    async def judge(self, judge_llm: Any, intent: str):
         if not intent:
             return
+
         content = str(self._event.get("content", ""))
-        if intent.lower() not in content.lower():
-            raise AssertionError(f"Intent hint not present in message content: {intent}")
+        model_name = "gpt-4o-mini"
+
+        # Try to get model name from judge_llm (LiveKit object) if passed
+        if judge_llm and hasattr(judge_llm, "model"):
+            model_name = str(judge_llm.model)
+
+        passed, reasoning = await evaluate_intent(content, intent, model_name)
+        if not passed:
+            raise AssertionError(f"Judgement failed: {reasoning}")
 
 
 class _SimpleEventAssertion:
@@ -151,7 +159,7 @@ class HttpJsonRuntime:
     async def run_turn(self, user_input: str, mock_tools: dict[str, Any] | None = None) -> TurnExecutionResult:
         endpoint = self._cfg.get("endpoint")
         if not endpoint:
-            raise ValueError("http_json connector requires connection_config.endpoint")
+            raise ValueError("rest_api connector requires connection_config.endpoint")
         method = str(self._cfg.get("method", "POST")).upper()
         static_payload = self._cfg.get("payload") or {}
         if not isinstance(static_payload, dict):
@@ -172,14 +180,14 @@ class HttpJsonRuntime:
         payload = response.json()
         events = _extract_events_from_payload(payload, str(self._cfg.get("events_path", "events")))
         if not events:
-            raise ValueError("http_json response did not contain events or text/output fields")
+            raise ValueError("rest_api response did not contain events or text/output fields")
 
         run_result = _SimpleRunResult(events)
         return TurnExecutionResult(run_result=run_result, events=events)
 
 
 class HttpJsonConnector:
-    provider_type = "http_json"
+    provider_type = "rest_api"
 
     @asynccontextmanager
     async def create_runtime(self, scenario: Any, agent_kwargs: dict[str, Any]):
@@ -198,7 +206,7 @@ class HttpJsonConnector:
         cfg = connection_config or {}
         endpoint = cfg.get("test_endpoint") or cfg.get("endpoint")
         if not endpoint:
-            raise ValueError("http_json connector test requires connection_config.endpoint")
+            raise ValueError("rest_api connector test requires connection_config.endpoint")
         method = str(cfg.get("test_method", "GET")).upper()
         timeout_ms = int(cfg.get("timeout_ms", 30000))
         timeout = timeout_ms / 1000

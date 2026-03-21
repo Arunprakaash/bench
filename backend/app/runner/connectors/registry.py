@@ -7,7 +7,7 @@ from app.runner.connectors.local_python import LocalPythonConnector
 
 _CONNECTORS: dict[str, AgentConnector] = {
     "local_python": LocalPythonConnector(),
-    "http_json": HttpJsonConnector(),
+    "rest_api": HttpJsonConnector(),
 }
 
 

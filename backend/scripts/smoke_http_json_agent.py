@@ -1,5 +1,5 @@
 """
-Create an http_json agent and run connection-test in one command.
+Create a rest_api agent and run connection-test in one command.
 
 Usage:
   API_BASE=http://localhost:8000/api \
@@ -25,7 +25,7 @@ def _fail(message: str, response: Any | None = None) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create an http_json agent and test its connection.")
+    parser = argparse.ArgumentParser(description="Create a rest_api agent and test its connection.")
     parser.add_argument(
         "--base",
         default=os.environ.get("API_BASE", "http://127.0.0.1:8000/api").rstrip("/"),
@@ -39,7 +39,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--endpoint",
         required=True,
-        help="Remote agent run endpoint used by http_json connector",
+        help="Remote agent run endpoint used by rest_api connector",
     )
     parser.add_argument(
         "--test-endpoint",
@@ -73,10 +73,10 @@ def main() -> None:
 
     create_payload = {
         "name": args.name,
-        "description": "Smoke-test agent for http_json connector",
+        "description": "Smoke-test agent for rest_api connector",
         "module": "remote.http",
         "agent_class": "HttpJsonAgent",
-        "provider_type": "http_json",
+        "provider_type": "rest_api",
         "connection_config": {
             "endpoint": args.endpoint,
             "method": "POST",
