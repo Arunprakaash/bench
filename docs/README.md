@@ -1,16 +1,19 @@
-# Bench
+# Bench — Developer Documentation
 
-## What is this?
+Bench is an agent testing platform. Define multi-turn conversation scenarios, run them against your agent, and get turn-by-turn pass/fail results with LLM-based evaluation.
 
-Bench is a visual testing and evaluation platform for voice agents.
-It lets you build multi-turn scenarios, run them against your agent, and review turn-by-turn events and judge verdicts.
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Getting Started](./getting-started.md) | Install, run, and execute your first test |
+| [Concepts](./concepts.md) | Agents, scenarios, suites, runs, automation |
+| [Connecting External Agents](./connecting-agents.md) | REST API connector — integration guide |
+| [API Reference](./api-reference.md) | All endpoints, request/response shapes |
+| [CI & Automation](./ci-automation.md) | Scheduled runs, regression alerts, API tokens |
 
 ## Quick links
 
-- Quick start: [`quickstart.md`](./quickstart.md)
-- User guide: [`user-guide.md`](./user-guide.md)
-- API reference: [`api.md`](./api.md)
-- Developer guide: [`developer-guide.md`](./developer-guide.md)
-- Agent connector RFC: [`agent-connector-rfc.md`](./agent-connector-rfc.md)
-- HTTP JSON agent template: [`http-json-agent-template.md`](./http-json-agent-template.md)
-- External agent integration: [`external-agent-integration.md`](./external-agent-integration.md)
+- UI: http://localhost:3000
+- Swagger: http://localhost:8000/api/docs
+- Postman collection: `backend/postman/Bench-API.postman_collection.json`
