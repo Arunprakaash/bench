@@ -20,6 +20,10 @@ class Agent(Base):
 
     module: Mapped[str] = mapped_column(String(500), nullable=False)
     agent_class: Mapped[str] = mapped_column(String(255), nullable=False)
+    provider_type: Mapped[str] = mapped_column(String(64), nullable=False, default="local_python")
+    connection_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    capabilities: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    auth_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     default_llm_model: Mapped[str] = mapped_column(String(255), default="gpt-4o-mini")
     default_judge_model: Mapped[str] = mapped_column(String(255), default="gpt-4o-mini")
@@ -42,4 +46,3 @@ class Agent(Base):
 
 # Avoid circular import
 from app.models.scenario import Scenario  # noqa: E402
-

@@ -77,6 +77,10 @@ async def lifespan(app: FastAPI):
                   description TEXT,
                   module VARCHAR(500) NOT NULL,
                   agent_class VARCHAR(255) NOT NULL,
+                  provider_type VARCHAR(64) NOT NULL DEFAULT 'local_python',
+                  connection_config JSONB,
+                  capabilities JSONB,
+                  auth_config JSONB,
                   default_llm_model VARCHAR(255) DEFAULT 'gpt-4o-mini',
                   default_judge_model VARCHAR(255) DEFAULT 'gpt-4o-mini',
                   default_agent_args JSONB,
@@ -119,6 +123,11 @@ async def lifespan(app: FastAPI):
                 """
             )
         )
+        await conn.execute(text("ALTER TABLE IF EXISTS agents ADD COLUMN IF NOT EXISTS provider_type VARCHAR(64)"))
+        await conn.execute(text("ALTER TABLE IF EXISTS agents ADD COLUMN IF NOT EXISTS connection_config JSONB"))
+        await conn.execute(text("ALTER TABLE IF EXISTS agents ADD COLUMN IF NOT EXISTS capabilities JSONB"))
+        await conn.execute(text("ALTER TABLE IF EXISTS agents ADD COLUMN IF NOT EXISTS auth_config JSONB"))
+        await conn.execute(text("UPDATE agents SET provider_type = 'local_python' WHERE provider_type IS NULL"))
 
         await conn.execute(
             text(

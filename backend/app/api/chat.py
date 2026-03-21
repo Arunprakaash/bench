@@ -1,4 +1,6 @@
 import time
+from dataclasses import dataclass, field
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -6,10 +8,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.agent import Agent
-from app.runner import executor
+from app.runner.connectors import get_connector
 from app.schemas.chat import ChatMessage, ChatTurnRequest, ChatTurnResponse
 
 router = APIRouter()
+
+
+@dataclass
+class SimpleAgent:
+    provider_type: str = "local_python"
+    connection_config: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SimpleScenario:
+    agent_module: str
+    agent_class: str
+    agent: SimpleAgent
+    llm_model: str
+    judge_model: str | None = None
+    chat_history: list[dict[str, str]] = field(default_factory=list)
+    mock_tools: dict[str, Any] | None = None
 
 
 @router.post("/turn", response_model=ChatTurnResponse)
@@ -24,50 +43,45 @@ async def chat_turn(data: ChatTurnRequest, db: AsyncSession = Depends(get_db)):
     cls_name = data.agent_class
     llm_model = data.llm_model
     agent_kwargs = data.agent_args or {}
+    provider_type = "local_python"
+    connection_config = {}
 
     if data.agent_id:
         res = await db.execute(select(Agent).where(Agent.id == data.agent_id))
-        agent = res.scalar_one_or_none()
-        if not agent:
+        agent_model = res.scalar_one_or_none()
+        if not agent_model:
             raise HTTPException(status_code=400, detail="agent_id not found")
-        module = agent.module
-        cls_name = agent.agent_class
-        llm_model = agent.default_llm_model
-        if not data.agent_args and agent.default_agent_args:
-            agent_kwargs = agent.default_agent_args
+        module = agent_model.module
+        cls_name = agent_model.agent_class
+        llm_model = agent_model.default_llm_model
+        if not data.agent_args and agent_model.default_agent_args:
+            agent_kwargs = agent_model.default_agent_args
+        provider_type = agent_model.provider_type or "local_python"
+        connection_config = agent_model.connection_config or {}
 
-    try:
-        agent_cls = executor._load_agent_class(module, cls_name)  # noqa: SLF001
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Shim the scenario interface required by connectors
+    # Convert Pydantic chat history to list of dicts for connectors
+    history_dicts = [{"role": msg.role, "content": msg.content} for msg in data.history or []]
 
-    from livekit.agents import AgentSession, ChatContext
-    from livekit.plugins import openai
+    scenario = SimpleScenario(
+        agent_module=module,
+        agent_class=cls_name,
+        agent=SimpleAgent(provider_type=provider_type, connection_config=connection_config),
+        llm_model=llm_model,
+        chat_history=history_dicts,
+        mock_tools=data.mock_tools,
+    )
+
+    connector = get_connector(provider_type)
 
     turn_start = time.monotonic()
-    async with (
-        openai.responses.LLM(model=llm_model, use_websocket=False) as llm,
-        AgentSession(llm=llm) as session,
-    ):
-        agent = agent_cls(**agent_kwargs)
-        await session.start(agent)
+    try:
+        async with connector.create_runtime(scenario, agent_kwargs) as runtime:
+            turn_output = await runtime.run_turn(data.user_input, data.mock_tools)
+            events = turn_output.events
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Turn execution failed: {type(e).__name__}: {str(e)}")
 
-        if data.history:
-            chat_ctx = ChatContext()
-            for msg in data.history:
-                chat_ctx.add_message(role=msg.role, content=msg.content)
-            await agent.update_chat_ctx(chat_ctx)
-
-        if data.mock_tools:
-            from livekit.agents import mock_tools
-
-            mock_fns = executor._build_mock_fns(data.mock_tools)  # noqa: SLF001
-            with mock_tools(agent_cls, mock_fns):
-                run_result = await session.run(user_input=data.user_input)
-        else:
-            run_result = await session.run(user_input=data.user_input)
-
-    events = executor._extract_events(run_result)  # noqa: SLF001
     assistant_msgs = [
         e.get("content", "")
         for e in events

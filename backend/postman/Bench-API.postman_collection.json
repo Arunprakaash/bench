@@ -27,14 +27,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/dev/reset?confirm=yes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dev",
-                "reset"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dev", "reset"],
               "query": [
                 {
                   "key": "confirm",
@@ -76,14 +70,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
             },
             "body": {
               "mode": "raw",
@@ -103,14 +91,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
             },
             "body": {
               "mode": "raw",
@@ -130,14 +112,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
             }
           }
         },
@@ -153,14 +129,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
             }
           }
         },
@@ -189,14 +159,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
             }
           },
           "response": []
@@ -226,14 +190,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/change-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "change-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
             }
           },
           "response": []
@@ -250,14 +208,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/api-token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "api-token"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "api-token"]
             }
           },
           "response": []
@@ -274,14 +226,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/api-token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "api-token"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "api-token"]
             }
           },
           "response": []
@@ -298,14 +244,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/api-token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "api-token"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "api-token"]
             }
           },
           "response": []
@@ -359,6 +299,23 @@
           }
         },
         {
+          "name": "Create HTTP JSON Agent",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/agents",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Remote HTTP Agent\",\n  \"description\": \"Calls external HTTP endpoint for each turn\",\n  \"module\": \"remote.http\",\n  \"agent_class\": \"HttpJsonAgent\",\n  \"provider_type\": \"rest_api\",\n  \"connection_config\": {\n    \"endpoint\": \"https://example.com/agent/run\",\n    \"method\": \"POST\",\n    \"timeout_ms\": 30000,\n    \"headers\": {\n      \"Authorization\": \"Bearer REPLACE_ME\"\n    },\n    \"events_path\": \"events\"\n  },\n  \"default_llm_model\": \"gpt-4o-mini\",\n  \"default_judge_model\": \"gpt-4o-mini\",\n  \"tags\": [\"remote\", \"http\"]\n}"
+            }
+          }
+        },
+        {
           "name": "Get Agent",
           "request": {
             "method": "GET",
@@ -370,6 +327,13 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/agents/{{agentId}}/arg-schema"
+          }
+        },
+        {
+          "name": "Test Agent Connection",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/agents/{{agentId}}/connection-test"
           }
         },
         {
@@ -407,13 +371,8 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/scenarios",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "scenarios"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scenarios"],
               "query": [
                 {
                   "key": "tag",
@@ -634,13 +593,8 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/runs",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "runs"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "runs"],
               "query": [
                 {
                   "key": "scenario_id",
@@ -730,13 +684,8 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/failures?limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "failures"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "failures"],
               "query": [
                 {
                   "key": "limit",
@@ -767,13 +716,8 @@
                 "method": "GET",
                 "url": {
                   "raw": "{{baseUrl}}/api/failures?limit=50",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "failures"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "failures"]
                 }
               },
               "status": "OK",
@@ -806,14 +750,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/automation/schedules",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "schedules"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "schedules"]
             }
           },
           "response": []
@@ -843,14 +781,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/automation/schedules",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "schedules"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "schedules"]
             }
           },
           "response": []
@@ -867,15 +799,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/automation/schedules/{{scheduleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "schedules",
-                "{{scheduleId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "schedules", "{{scheduleId}}"]
             }
           },
           "response": []
@@ -892,14 +817,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/automation/alerts?acknowledged=false",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "alerts"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "alerts"],
               "query": [
                 {
                   "key": "acknowledged",
@@ -922,16 +841,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/automation/alerts/{{alertId}}/ack",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "alerts",
-                "{{alertId}}",
-                "ack"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "alerts", "{{alertId}}", "ack"]
             }
           },
           "response": []
@@ -948,15 +859,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/automation/schedules/{{scheduleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "schedules",
-                "{{scheduleId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "schedules", "{{scheduleId}}"]
             }
           },
           "response": []
@@ -986,15 +890,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/automation/schedules/{{scheduleId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "automation",
-                "schedules",
-                "{{scheduleId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "automation", "schedules", "{{scheduleId}}"]
             }
           },
           "response": []

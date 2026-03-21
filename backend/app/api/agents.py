@@ -9,7 +9,8 @@ from app.api.auth import get_current_user
 from app.database import get_db
 from app.models.agent import Agent
 from app.models.user import User
-from app.schemas.agent import AgentCreate, AgentListItem, AgentResponse, AgentUpdate
+from app.runner.connectors import get_connector
+from app.schemas.agent import AgentConnectionTestResponse, AgentCreate, AgentListItem, AgentResponse, AgentUpdate
 
 router = APIRouter()
 
@@ -29,6 +30,7 @@ async def list_agents(
             description=a.description,
             module=a.module,
             agent_class=a.agent_class,
+            provider_type=a.provider_type or "local_python",
             tags=a.tags,
             owner_user_id=a.owner_user_id,
             owner_display_name=current_user.display_name or current_user.email,
@@ -56,6 +58,9 @@ async def get_agent(
 
 def _derive_and_set_arg_schema(agent: Agent) -> None:
     """Compute arg_schema from agent module/class and set on model (not persisted here)."""
+    if (agent.provider_type or "local_python") != "local_python":
+        agent.arg_schema = None
+        return
     schema = derive_arg_schema(agent.module, agent.agent_class)
     agent.arg_schema = schema
 
@@ -72,7 +77,7 @@ async def get_agent_arg_schema(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     schema = agent.arg_schema
-    if schema is None:
+    if schema is None and (agent.provider_type or "local_python") == "local_python":
         schema = derive_arg_schema(agent.module, agent.agent_class)
     return {"arg_schema": schema}
 
@@ -88,6 +93,10 @@ async def create_agent(
         description=data.description,
         module=data.module,
         agent_class=data.agent_class,
+        provider_type=data.provider_type or "local_python",
+        connection_config=data.connection_config,
+        capabilities=data.capabilities,
+        auth_config=data.auth_config,
         default_llm_model=data.default_llm_model,
         default_judge_model=data.default_judge_model,
         default_agent_args=data.default_agent_args,
@@ -112,9 +121,10 @@ async def update_agent(
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    changed = data.model_dump(exclude_unset=True)
+    for field, value in changed.items():
         setattr(agent, field, value)
-    if "module" in data.model_dump(exclude_unset=True) or "agent_class" in data.model_dump(exclude_unset=True):
+    if "module" in changed or "agent_class" in changed or "provider_type" in changed:
         _derive_and_set_arg_schema(agent)
     await db.commit()
     await db.refresh(agent)
@@ -134,3 +144,32 @@ async def delete_agent(
     await db.delete(agent)
     await db.commit()
 
+
+@router.post("/{agent_id}/connection-test", response_model=AgentConnectionTestResponse)
+async def test_agent_connection(
+    agent_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.owner_user_id == current_user.id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    provider_type = agent.provider_type or "local_python"
+    connector = get_connector(provider_type)
+    try:
+        out = await connector.test_connection(
+            module=agent.module,
+            agent_class=agent.agent_class,
+            connection_config=agent.connection_config,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Connection test failed: {type(e).__name__}: {e}")
+
+    return AgentConnectionTestResponse(
+        ok=bool(out.get("ok", True)),
+        provider_type=provider_type,
+        detail=str(out.get("detail", "Connection test succeeded")),
+        sample=str(out.get("sample")) if out.get("sample") is not None else None,
+    )

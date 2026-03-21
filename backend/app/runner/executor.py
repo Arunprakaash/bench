@@ -6,7 +6,6 @@ Translates UI-defined scenarios into LiveKit's testing API calls:
 """
 
 import asyncio
-import importlib
 import time
 import traceback
 from datetime import datetime, timezone
@@ -20,6 +19,7 @@ from app.models.agent_version import AgentVersion
 from app.models.run_evaluation import RunEvaluation
 from app.models.scenario import Scenario
 from app.models.test_run import RunStatus, TestRun, TurnResult
+from app.runner.connectors import get_connector
 
 
 def _build_structured_events(turn_events: list[dict]) -> dict:
@@ -64,11 +64,16 @@ def _lock_for_agent(agent_id: UUID) -> asyncio.Lock:
 
 def _build_execution_snapshot(scenario: Scenario, agent_kwargs: dict) -> dict:
     """Build execution_snapshot for replay/debug: resolved agent config and scenario snapshot."""
+    provider_type = "local_python"
+    if scenario.agent and scenario.agent.provider_type:
+        provider_type = scenario.agent.provider_type
     return {
         "resolved_agent": {
             "module": scenario.agent_module,
             "agent_class": scenario.agent_class,
             "agent_args": agent_kwargs,
+            "provider_type": provider_type,
+            "connection_config": (scenario.agent.connection_config if scenario.agent else None),
         },
         "llm_model": scenario.llm_model,
         "judge_model": scenario.judge_model or scenario.llm_model,
@@ -87,7 +92,10 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
     """Execute a test scenario using LiveKit's AgentSession testing API."""
     result = await db.execute(
         select(TestRun)
-        .options(selectinload(TestRun.scenario).selectinload(Scenario.turns))
+        .options(
+            selectinload(TestRun.scenario).selectinload(Scenario.turns),
+            selectinload(TestRun.scenario).selectinload(Scenario.agent),
+        )
         .where(TestRun.id == run_id)
     )
     test_run = result.scalar_one()
@@ -120,6 +128,8 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
                 module=scenario.agent_module,
                 agent_class=scenario.agent_class,
                 config={
+                    "provider_type": scenario.agent.provider_type if scenario.agent else "local_python",
+                    "connection_config": scenario.agent.connection_config if scenario.agent else None,
                     "llm_model": scenario.llm_model,
                     "judge_model": scenario.judge_model or scenario.llm_model,
                     "agent_args": scenario.agent_args or {},
@@ -135,28 +145,12 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
     run_start = time.monotonic()
 
     try:
-        agent_cls = _load_agent_class(scenario.agent_module, scenario.agent_class)
+        provider_type = scenario.agent.provider_type if scenario.agent and scenario.agent.provider_type else "local_python"
+        connector = get_connector(provider_type)
 
-        from livekit.agents import AgentSession
         from livekit.plugins import openai
 
-        async with (
-            openai.responses.LLM(model=scenario.llm_model, use_websocket=False) as llm,
-            AgentSession(llm=llm) as session,
-        ):
-            agent = agent_cls(**agent_kwargs)
-
-            if scenario.chat_history:
-                from livekit.agents import ChatContext
-
-                chat_ctx = ChatContext()
-                for msg in scenario.chat_history:
-                    chat_ctx.add_message(role=msg["role"], content=msg["content"])
-                await session.start(agent)
-                await agent.update_chat_ctx(chat_ctx)
-            else:
-                await session.start(agent)
-
+        async with connector.create_runtime(scenario, agent_kwargs) as runtime:
             judge_llm = None
             if scenario.judge_model:
                 judge_llm = openai.responses.LLM(model=scenario.judge_model, use_websocket=False)
@@ -172,21 +166,12 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
                 error_msg = None
 
                 try:
-                    if scenario.mock_tools:
-                        from livekit.agents import mock_tools
-
-                        mock_fns = _build_mock_fns(scenario.mock_tools)
-                        with mock_tools(agent_cls, mock_fns):
-                            run_result = await session.run(user_input=turn.user_input)
-                    else:
-                        run_result = await session.run(user_input=turn.user_input)
-
-                    turn_events = _extract_events(run_result)
+                    turn_output = await runtime.run_turn(turn.user_input, scenario.mock_tools)
+                    run_result = turn_output.run_result
+                    turn_events = turn_output.events
 
                     for exp_idx, expectation in enumerate(turn.expectations):
-                        verdict = await _evaluate_expectation(
-                            run_result, expectation, judge_llm, exp_idx
-                        )
+                        verdict = await _evaluate_expectation(run_result, expectation, judge_llm, exp_idx)
                         judge_verdicts.append(verdict)
                         if not verdict["passed"]:
                             turn_passed = False
@@ -252,96 +237,6 @@ async def execute_scenario(run_id: UUID, db: AsyncSession) -> None:
         )
         db.add(run_eval)
         await db.commit()
-
-
-def _load_agent_class(module_path: str, class_name: str):
-    """Dynamically import the agent class from the given module path."""
-    module = importlib.import_module(module_path)
-    cls = getattr(module, class_name, None)
-    if cls is None:
-        raise ImportError(f"Class '{class_name}' not found in module '{module_path}'")
-    return cls
-
-
-def _build_mock_fns(mock_config: dict) -> dict:
-    """
-    Convert JSON mock definitions to callable functions.
-
-    mock_config format:
-    {
-        "tool_name": {"return": "value"}
-        "tool_name": {"error": "error message"}
-        "tool_name": {"conditional": [{"if_args": {"key": "val"}, "return": "value"}]}
-    }
-    """
-    mock_fns = {}
-    for tool_name, config in mock_config.items():
-        if "error" in config:
-            mock_fns[tool_name] = lambda: RuntimeError(config["error"])
-        elif "return" in config:
-            return_val = config["return"]
-            mock_fns[tool_name] = lambda: return_val
-        elif "conditional" in config:
-            conditions = config["conditional"]
-
-            def _conditional_mock(**kwargs):
-                for cond in conditions:
-                    if_args = cond.get("if_args", {})
-                    if all(kwargs.get(k) == v for k, v in if_args.items()):
-                        if "error" in cond:
-                            return RuntimeError(cond["error"])
-                        return cond.get("return", "")
-                return cond.get("default", "")
-
-            mock_fns[tool_name] = _conditional_mock
-
-    return mock_fns
-
-
-def _extract_events(run_result) -> list[dict]:
-    """Extract structured event data from a LiveKit RunResult."""
-    events = []
-    try:
-        idx = 0
-        while True:
-            try:
-                event_assert = run_result.expect[idx]
-                event = event_assert.event()
-                event_data = {"index": idx}
-
-                if hasattr(event, "item"):
-                    item = event.item
-                    if hasattr(item, "role"):
-                        event_data["type"] = "message"
-                        event_data["role"] = item.role
-                        raw = item.content if hasattr(item, "content") else ""
-                        if isinstance(raw, list):
-                            raw = " ".join(str(c) for c in raw)
-                        event_data["content"] = str(raw)
-                    elif hasattr(item, "name") and hasattr(item, "arguments"):
-                        event_data["type"] = "function_call"
-                        event_data["name"] = item.name
-                        event_data["arguments"] = item.arguments
-                    elif hasattr(item, "output"):
-                        event_data["type"] = "function_call_output"
-                        event_data["output"] = str(item.output)
-                        event_data["is_error"] = getattr(item, "is_error", False)
-                    else:
-                        event_data["type"] = "unknown"
-                        event_data["raw"] = str(event)
-                else:
-                    event_data["type"] = "unknown"
-                    event_data["raw"] = str(event)
-
-                events.append(event_data)
-                idx += 1
-            except (IndexError, AssertionError):
-                break
-    except Exception:
-        pass
-
-    return events
-
 
 def _extract_event_data(event_assert) -> dict | None:
     """Safely extract structured data from an event assertion."""

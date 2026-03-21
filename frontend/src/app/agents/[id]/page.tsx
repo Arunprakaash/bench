@@ -13,6 +13,12 @@ import { MessageSquarePlus, Pencil, Trash2 } from "@/lib/icons";
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
 
+function connectorLabel(providerType?: string | null): string {
+  if (!providerType || providerType === "local_python") return "local_python";
+  if (providerType === "rest_api") return "REST API";
+  return providerType;
+}
+
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -21,6 +27,10 @@ export default function AgentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testConnectionMessage, setTestConnectionMessage] = useState<
+    string | null
+  >(null);
   const { setItems } = useBreadcrumbs();
 
   useEffect(() => {
@@ -44,7 +54,9 @@ export default function AgentDetailPage() {
 
   const handleDeleteClick = () => {
     setDeleteError(null);
-    const ok = window.confirm("Delete this agent? This action cannot be undone.");
+    const ok = window.confirm(
+      "Delete this agent? This action cannot be undone.",
+    );
     if (!ok) return;
     void handleDeleteConfirm();
   };
@@ -60,6 +72,25 @@ export default function AgentDetailPage() {
       setDeleteError((e as Error).message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!agent) return;
+    setTestingConnection(true);
+    setTestConnectionMessage(null);
+    try {
+      const out = await api.agents.testConnection(agent.id);
+      const detail = out.detail ? ` - ${out.detail}` : "";
+      setTestConnectionMessage(
+        `Connection test ${out.ok ? "passed" : "failed"}${detail}`,
+      );
+    } catch (e) {
+      setTestConnectionMessage(
+        `Connection test failed - ${(e as Error).message}`,
+      );
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -80,7 +111,10 @@ export default function AgentDetailPage() {
           </div>
         )}
         <p>Agent not found.</p>
-        <Link href="/agents" className={`text-sm text-primary hover:underline ${FOCUS_LINK}`}>
+        <Link
+          href="/agents"
+          className={`text-sm text-primary hover:underline ${FOCUS_LINK}`}
+        >
           Back to Agents
         </Link>
       </div>
@@ -92,7 +126,9 @@ export default function AgentDetailPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{agent.name}</h1>
-          {agent.description && <p className="text-muted-foreground mt-1">{agent.description}</p>}
+          {agent.description && (
+            <p className="text-muted-foreground mt-1">{agent.description}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link href={`/agents/${agent.id}/edit`} className={FOCUS_LINK}>
@@ -101,12 +137,22 @@ export default function AgentDetailPage() {
               Edit
             </Button>
           </Link>
-          <Link href={`/agents/chat?agentId=${agent.id}`} className={FOCUS_LINK}>
+          <Link
+            href={`/agents/chat?agentId=${agent.id}`}
+            className={FOCUS_LINK}
+          >
             <Button variant="outline">
               <MessageSquarePlus className="mr-2 h-4 w-4" />
               Try in Chat Builder
             </Button>
           </Link>
+          <Button
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={testingConnection}
+          >
+            {testingConnection ? "Testing..." : "Test Connection"}
+          </Button>
           <Button
             variant="ghost"
             onClick={handleDeleteClick}
@@ -124,15 +170,27 @@ export default function AgentDetailPage() {
           {deleteError}
         </p>
       )}
+      {testConnectionMessage && (
+        <p className="text-sm border border-primary/20 bg-primary/5 text-primary rounded-lg p-3">
+          {testConnectionMessage}
+        </p>
+      )}
 
       <div className="flex gap-2 flex-wrap">
+        <Badge variant="outline">
+          Connector: {connectorLabel(agent.provider_type)}
+        </Badge>
         <Badge variant="outline">
           {agent.module}.{agent.agent_class}
         </Badge>
         <Badge variant="outline">LLM: {agent.default_llm_model}</Badge>
         <Badge variant="outline">Judge: {agent.default_judge_model}</Badge>
         {agent.tags?.map((t) => (
-          <Badge key={t} variant="secondary" className="bg-primary/10 text-primary/80">
+          <Badge
+            key={t}
+            variant="secondary"
+            className="bg-primary/10 text-primary/80"
+          >
             {t}
           </Badge>
         ))}
@@ -148,7 +206,16 @@ export default function AgentDetailPage() {
           </pre>
         </CardContent>
       </Card>
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-base">Connection config</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="text-xs rounded-lg border bg-muted/30 p-3 overflow-auto">
+            {JSON.stringify(agent.connection_config || {}, null, 2)}
+          </pre>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

@@ -92,6 +92,7 @@ export interface AgentListItem {
   description: string | null;
   module: string;
   agent_class: string;
+  provider_type?: string;
   tags: string[] | null;
   owner_user_id?: string | null;
   owner_display_name?: string | null;
@@ -112,6 +113,10 @@ export interface Agent {
   description: string | null;
   module: string;
   agent_class: string;
+  provider_type: string;
+  connection_config?: Record<string, unknown> | null;
+  capabilities?: Record<string, unknown> | null;
+  auth_config?: Record<string, unknown> | null;
   default_llm_model: string;
   default_judge_model: string;
   default_agent_args: Record<string, unknown> | null;
@@ -126,10 +131,21 @@ export interface AgentCreate {
   description?: string;
   module: string;
   agent_class: string;
+  provider_type?: string;
+  connection_config?: Record<string, unknown> | null;
+  capabilities?: Record<string, unknown> | null;
+  auth_config?: Record<string, unknown> | null;
   default_llm_model?: string;
   default_judge_model?: string;
   default_agent_args?: Record<string, unknown> | null;
   tags?: string[];
+}
+
+export interface AgentConnectionTestResponse {
+  ok: boolean;
+  provider_type: string;
+  detail?: string | null;
+  sample?: string | null;
 }
 
 export interface ChatMessage {
@@ -377,37 +393,76 @@ export const api = {
   auth: {
     me: () => request<AuthMe>("/api/auth/me"),
     updateMe: (data: AuthMeUpdate) =>
-      request<AuthMe>("/api/auth/me", { method: "PATCH", body: JSON.stringify(data) }),
+      request<AuthMe>("/api/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
-    register: (data: { email: string; password: string; display_name?: string | null }) =>
-      request<AuthTokenResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(data) }),
+    register: (data: {
+      email: string;
+      password: string;
+      display_name?: string | null;
+    }) =>
+      request<AuthTokenResponse>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     login: (data: { email: string; password: string }) =>
-      request<AuthTokenResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(data) }),
+      request<AuthTokenResponse>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     changePassword: (data: ChangePasswordRequest) =>
-      request<void>("/api/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
+      request<void>("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     getApiTokenMeta: () => request<ApiTokenMeta>("/api/auth/api-token"),
-    createApiToken: () => request<ApiTokenCreateResponse>("/api/auth/api-token", { method: "POST" }),
-    revokeApiToken: () => request<void>("/api/auth/api-token", { method: "DELETE" }),
+    createApiToken: () =>
+      request<ApiTokenCreateResponse>("/api/auth/api-token", {
+        method: "POST",
+      }),
+    revokeApiToken: () =>
+      request<void>("/api/auth/api-token", { method: "DELETE" }),
   },
   agents: {
     list: () => request<AgentListItem[]>("/api/agents"),
     get: (id: string) => request<Agent>(`/api/agents/${id}`),
     getArgSchema: (id: string) =>
-      request<{ arg_schema: ArgSchemaField[] | null }>(`/api/agents/${id}/arg-schema`),
+      request<{ arg_schema: ArgSchemaField[] | null }>(
+        `/api/agents/${id}/arg-schema`,
+      ),
     create: (data: AgentCreate) =>
-      request<Agent>("/api/agents", { method: "POST", body: JSON.stringify(data) }),
+      request<Agent>("/api/agents", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     update: (id: string, data: Partial<AgentCreate>) =>
-      request<Agent>(`/api/agents/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    delete: (id: string) => request<void>(`/api/agents/${id}`, { method: "DELETE" }),
+      request<Agent>(`/api/agents/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    testConnection: (id: string) =>
+      request<AgentConnectionTestResponse>(
+        `/api/agents/${id}/connection-test`,
+        { method: "POST" },
+      ),
+    delete: (id: string) =>
+      request<void>(`/api/agents/${id}`, { method: "DELETE" }),
   },
   scenarios: {
     list: (tag?: string) =>
       request<ScenarioListItem[]>(`/api/scenarios${tag ? `?tag=${tag}` : ""}`),
     get: (id: string) => request<Scenario>(`/api/scenarios/${id}`),
-    export: (id: string) => request<ScenarioExportResponse>(`/api/scenarios/${id}/export`),
-    versions: (id: string) => request<ScenarioVersionListItem[]>(`/api/scenarios/${id}/versions`),
+    export: (id: string) =>
+      request<ScenarioExportResponse>(`/api/scenarios/${id}/export`),
+    versions: (id: string) =>
+      request<ScenarioVersionListItem[]>(`/api/scenarios/${id}/versions`),
     import: (data: ScenarioCreate) =>
-      request<Scenario>("/api/scenarios/import", { method: "POST", body: JSON.stringify(data) }),
+      request<Scenario>("/api/scenarios/import", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     create: (data: ScenarioCreate) =>
       request<Scenario>("/api/scenarios", {
         method: "POST",
@@ -424,17 +479,37 @@ export const api = {
   suites: {
     list: () => request<SuiteListItem[]>("/api/suites"),
     get: (id: string) => request<Suite>(`/api/suites/${id}`),
-    create: (data: { name: string; description?: string; scenario_ids?: string[] }) =>
-      request<Suite>("/api/suites", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: { name?: string; description?: string; scenario_ids?: string[] }) =>
-      request<Suite>(`/api/suites/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    create: (data: {
+      name: string;
+      description?: string;
+      scenario_ids?: string[];
+    }) =>
+      request<Suite>("/api/suites", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (
+      id: string,
+      data: { name?: string; description?: string; scenario_ids?: string[] },
+    ) =>
+      request<Suite>(`/api/suites/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
     delete: (id: string) =>
       request<void>(`/api/suites/${id}`, { method: "DELETE" }),
   },
   runs: {
-    list: (params?: { scenario_id?: string; suite_id?: string; agent_id?: string; status?: string; limit?: number }) => {
+    list: (params?: {
+      scenario_id?: string;
+      suite_id?: string;
+      agent_id?: string;
+      status?: string;
+      limit?: number;
+    }) => {
       const searchParams = new URLSearchParams();
-      if (params?.scenario_id) searchParams.set("scenario_id", params.scenario_id);
+      if (params?.scenario_id)
+        searchParams.set("scenario_id", params.scenario_id);
       if (params?.suite_id) searchParams.set("suite_id", params.suite_id);
       if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
       if (params?.status) searchParams.set("status", params.status);
@@ -464,11 +539,18 @@ export const api = {
       }),
   },
   failures: {
-    list: (params?: { limit?: number; suite_id?: string; scenario_id?: string; agent_id?: string }) => {
+    list: (params?: {
+      limit?: number;
+      suite_id?: string;
+      scenario_id?: string;
+      agent_id?: string;
+    }) => {
       const searchParams = new URLSearchParams();
-      if (params?.limit != null) searchParams.set("limit", String(params.limit));
+      if (params?.limit != null)
+        searchParams.set("limit", String(params.limit));
       if (params?.suite_id) searchParams.set("suite_id", params.suite_id);
-      if (params?.scenario_id) searchParams.set("scenario_id", params.scenario_id);
+      if (params?.scenario_id)
+        searchParams.set("scenario_id", params.scenario_id);
       if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
@@ -476,7 +558,8 @@ export const api = {
   },
   automation: {
     listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),
-    getSchedule: (id: string) => request<ScheduledRun>(`/api/automation/schedules/${id}`),
+    getSchedule: (id: string) =>
+      request<ScheduledRun>(`/api/automation/schedules/${id}`),
     createSchedule: (data: ScheduledRunCreate) =>
       request<ScheduledRun>("/api/automation/schedules", {
         method: "POST",
@@ -494,6 +577,8 @@ export const api = {
         `/api/automation/alerts${acknowledged == null ? "" : `?acknowledged=${String(acknowledged)}`}`,
       ),
     acknowledgeAlert: (id: string) =>
-      request<RegressionAlert>(`/api/automation/alerts/${id}/ack`, { method: "POST" }),
+      request<RegressionAlert>(`/api/automation/alerts/${id}/ack`, {
+        method: "POST",
+      }),
   },
 };

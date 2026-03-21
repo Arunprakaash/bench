@@ -31,6 +31,35 @@ Bearer token can be either:
 - `DELETE /api/auth/api-token`
 - `POST /api/auth/logout`
 
+## Agents
+
+- `GET /api/agents`
+- `GET /api/agents/{agent_id}`
+- `POST /api/agents`
+- `PUT /api/agents/{agent_id}`
+- `DELETE /api/agents/{agent_id}`
+- `GET /api/agents/{agent_id}/arg-schema`
+- `POST /api/agents/{agent_id}/connection-test`
+
+Connector fields on agent payload:
+
+- `provider_type`: currently supports `local_python` and `rest_api`
+- `connection_config`: provider-specific JSON config
+  - `rest_api` minimum: `{ "endpoint": "https://your-agent/run" }`
+  - optional: `method`, `headers`, `timeout_ms`, `payload`, `events_path`
+  - optional test config: `test_endpoint`, `test_method`, `test_payload`
+
+`rest_api` request contract sent by Bench (per turn):
+
+- `user_input`
+- `chat_history`
+- `llm_model`
+- `judge_model`
+- `agent_args`
+- `mock_tools`
+
+Use `connection_config.payload` for static custom fields (for example `sia_agent_id`) that should be included with every request.
+
 ## Scenarios
 
 - `GET /api/scenarios`
