@@ -323,8 +323,7 @@ function AgentsPageInner() {
                     aria-label="Select all visible agents"
                   />
                 </TableHead>
-                <TableHead className="w-[32%]">Name</TableHead>
-                <TableHead className="w-[24%]">Entrypoint</TableHead>
+                <TableHead className="w-[40%]">Name</TableHead>
                 <TableHead className="w-[140px] text-right">Created By</TableHead>
                 <TableHead className="w-[170px] text-right">Created At</TableHead>
                 <TableHead className="w-[170px] text-right">Updated At</TableHead>
@@ -353,11 +352,6 @@ function AgentsPageInner() {
                         {a.description}
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-full">
-                    <span className="block truncate" title={`${a.module}.${a.agent_class}`}>
-                      {a.module}.{a.agent_class}
-                    </span>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">
                     {a.owner_display_name || "Unknown"}
