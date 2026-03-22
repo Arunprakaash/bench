@@ -98,6 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <WorkspaceProvider>
       <BreadcrumbsProvider>
+        <WorkspaceGate>
         <div className="flex h-screen flex-col overflow-hidden">
           <div className="h-11 border-b bg-background/95 backdrop-blur">
             <div className="flex h-full">
@@ -182,8 +183,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        </WorkspaceGate>
       </BreadcrumbsProvider>
       </WorkspaceProvider>
     </TooltipProvider>
   );
+}
+
+function WorkspaceGate({ children }: { children: React.ReactNode }) {
+  const { loading } = useWorkspace();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+  return <>{children}</>;
 }
