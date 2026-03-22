@@ -26,7 +26,7 @@ async def _load_suite_response(
     result = await db.execute(
         select(Suite)
         .options(selectinload(Suite.scenarios).selectinload(Scenario.turns))
-        .where(Suite.id == suite_id, Suite.owner_user_id == current_user.id)
+        .where(Suite.id == suite_id)
     )
     suite = result.scalar_one_or_none()
     if not suite:
@@ -122,15 +122,15 @@ async def create_suite(
     await db.flush()
 
     if data.scenario_ids:
-        # Ensure scenarios belong to the same user.
         from app.models.scenario import Scenario
+        wids = await get_user_workspace_ids(current_user.id, db)
         res = await db.execute(
-            select(Scenario.id).where(Scenario.id.in_(data.scenario_ids), Scenario.owner_user_id == current_user.id)
+            select(Scenario.id).where(Scenario.id.in_(data.scenario_ids), ownership_filter(Scenario, current_user.id, wids))
         )
         owned_ids = set(res.scalars().all())
         missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
         if missing:
-            raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+            raise HTTPException(status_code=400, detail="Some scenario_ids are not accessible to you")
         await db.execute(
             insert(suite_scenarios),
             [
@@ -167,16 +167,17 @@ async def update_suite(
     if data.scenario_ids is not None:
         from app.models.scenario import Scenario
         if data.scenario_ids:
+            wids = await get_user_workspace_ids(current_user.id, db)
             res = await db.execute(
                 select(Scenario.id).where(
                     Scenario.id.in_(data.scenario_ids),
-                    Scenario.owner_user_id == current_user.id,
+                    ownership_filter(Scenario, current_user.id, wids),
                 )
             )
             owned_ids = set(res.scalars().all())
             missing = [sid for sid in data.scenario_ids if sid not in owned_ids]
             if missing:
-                raise HTTPException(status_code=400, detail="Some scenario_ids are not owned by you")
+                raise HTTPException(status_code=400, detail="Some scenario_ids are not accessible to you")
         await db.execute(
             sa_delete(suite_scenarios).where(suite_scenarios.c.suite_id == suite_id)
         )

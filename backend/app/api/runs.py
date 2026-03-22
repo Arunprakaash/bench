@@ -97,10 +97,11 @@ async def create_run(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Scenario)
         .options(selectinload(Scenario.turns))
-        .where(Scenario.id == data.scenario_id, Scenario.owner_user_id == current_user.id)
+        .where(Scenario.id == data.scenario_id, ownership_filter(Scenario, current_user.id, wids))
     )
     scenario = result.scalar_one_or_none()
     if not scenario:
@@ -133,10 +134,11 @@ async def create_suite_run(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
         select(Suite)
         .options(selectinload(Suite.scenarios).selectinload(Scenario.turns))
-        .where(Suite.id == data.suite_id, Suite.owner_user_id == current_user.id)
+        .where(Suite.id == data.suite_id, ownership_filter(Suite, current_user.id, wids))
     )
     suite = result.scalar_one_or_none()
     if not suite:

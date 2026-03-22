@@ -7,6 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from sqlalchemy import or_
+
+from app.api.access import get_user_workspace_ids, ownership_filter
 from app.api.auth import get_current_user
 from app.database import async_session, get_db
 from app.models.automation import RegressionAlert, ScheduledRun, ScheduleTargetType
@@ -23,6 +26,28 @@ from app.schemas.automation import (
 )
 
 router = APIRouter()
+
+
+async def _schedule_access_filter(user_id: UUID, db: AsyncSession):
+    """Returns a SQLAlchemy filter allowing access to schedules the user owns or
+    whose target scenario/suite lives in one of their workspaces."""
+    wids = await get_user_workspace_ids(user_id, db)
+    scenario_subq = select(Scenario.id).where(ownership_filter(Scenario, user_id, wids)).scalar_subquery()
+    suite_subq = select(Suite.id).where(ownership_filter(Suite, user_id, wids)).scalar_subquery()
+    return or_(
+        ScheduledRun.owner_user_id == user_id,
+        ScheduledRun.scenario_id.in_(scenario_subq),
+        ScheduledRun.suite_id.in_(suite_subq),
+    )
+
+
+async def _alert_access_filter(user_id: UUID, db: AsyncSession):
+    wids = await get_user_workspace_ids(user_id, db)
+    scenario_subq = select(Scenario.id).where(ownership_filter(Scenario, user_id, wids)).scalar_subquery()
+    return or_(
+        RegressionAlert.owner_user_id == user_id,
+        RegressionAlert.scenario_id.in_(scenario_subq),
+    )
 
 
 async def _create_regression_alert_if_needed(db: AsyncSession, run: TestRun):
@@ -73,7 +98,7 @@ async def _execute_suite_scheduled_run(run_ids: list[UUID]):
 async def list_schedules(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ScheduledRun)
-        .where(ScheduledRun.owner_user_id == current_user.id)
+        .where(await _schedule_access_filter(current_user.id, db))
         .order_by(ScheduledRun.created_at.desc())
     )
     return result.scalars().all()
@@ -91,15 +116,17 @@ async def create_schedule(
         raise HTTPException(status_code=400, detail="suite_id is required for suite schedules")
 
     if data.scenario_id:
+        wids = await get_user_workspace_ids(current_user.id, db)
         scenario = (
             await db.execute(
-                select(Scenario).where(Scenario.id == data.scenario_id, Scenario.owner_user_id == current_user.id)
+                select(Scenario).where(Scenario.id == data.scenario_id, ownership_filter(Scenario, current_user.id, wids))
             )
         ).scalar_one_or_none()
         if not scenario:
             raise HTTPException(status_code=404, detail="Scenario not found")
     if data.suite_id:
-        suite = (await db.execute(select(Suite).where(Suite.id == data.suite_id, Suite.owner_user_id == current_user.id))).scalar_one_or_none()
+        wids = await get_user_workspace_ids(current_user.id, db)
+        suite = (await db.execute(select(Suite).where(Suite.id == data.suite_id, ownership_filter(Suite, current_user.id, wids)))).scalar_one_or_none()
         if not suite:
             raise HTTPException(status_code=404, detail="Suite not found")
 
@@ -128,7 +155,7 @@ async def get_schedule(
 ):
     schedule = (
         await db.execute(
-            select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id)
+            select(ScheduledRun).where(ScheduledRun.id == schedule_id, await _schedule_access_filter(current_user.id, db))
         )
     ).scalar_one_or_none()
     if not schedule:
@@ -145,7 +172,7 @@ async def update_schedule(
 ):
     schedule = (
         await db.execute(
-            select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id)
+            select(ScheduledRun).where(ScheduledRun.id == schedule_id, await _schedule_access_filter(current_user.id, db))
         )
     ).scalar_one_or_none()
     if not schedule:
@@ -171,7 +198,7 @@ async def delete_schedule(
     db: AsyncSession = Depends(get_db),
 ):
     schedule = (
-        await db.execute(select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id))
+        await db.execute(select(ScheduledRun).where(ScheduledRun.id == schedule_id, await _schedule_access_filter(current_user.id, db)))
     ).scalar_one_or_none()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -187,7 +214,7 @@ async def list_alerts(
 ):
     query = (
         select(RegressionAlert)
-        .where(RegressionAlert.owner_user_id == current_user.id)
+        .where(await _alert_access_filter(current_user.id, db))
         .order_by(RegressionAlert.created_at.desc())
         .limit(200)
     )
@@ -205,7 +232,7 @@ async def acknowledge_alert(
 ):
     alert = (
         await db.execute(
-            select(RegressionAlert).where(RegressionAlert.id == alert_id, RegressionAlert.owner_user_id == current_user.id)
+            select(RegressionAlert).where(RegressionAlert.id == alert_id, await _alert_access_filter(current_user.id, db))
         )
     ).scalar_one_or_none()
     if not alert:
@@ -236,10 +263,7 @@ async def process_due_schedules():
             if schedule.target_type == ScheduleTargetType.SCENARIO and schedule.scenario_id:
                 scenario = (
                     await db.execute(
-                        select(Scenario).where(
-                            Scenario.id == schedule.scenario_id,
-                            Scenario.owner_user_id == schedule.owner_user_id,
-                        )
+                        select(Scenario).where(Scenario.id == schedule.scenario_id)
                     )
                 ).scalar_one_or_none()
                 if scenario:
@@ -261,7 +285,7 @@ async def process_due_schedules():
                     await db.execute(
                         select(Suite)
                         .options(selectinload(Suite.scenarios))
-                        .where(Suite.id == schedule.suite_id, Suite.owner_user_id == schedule.owner_user_id)
+                        .where(Suite.id == schedule.suite_id)
                     )
                 ).scalar_one_or_none()
                 if suite:
