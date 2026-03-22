@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bench*"]
+
+[project]
+name = "bench-cli"
+version = "0.1.0"
+description = "CLI for agent-bench"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0",
+    "httpx>=0.27",
+    "rich>=13.0",
+]
+
+[project.scripts]
+bench = "bench.main:cli"

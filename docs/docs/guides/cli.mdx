@@ -1,0 +1,172 @@
+---
+title: "CLI"
+description: "Run scenarios, inspect resources, and manage your bench workspace from the terminal."
+---
+
+## Installation
+
+The CLI lives in the `cli/` directory and is installed as an editable Python package.
+
+```bash
+pip install -e cli/
+```
+
+Requires Python 3.11+. The backend's virtual environment already has all dependencies.
+
+```bash
+# Using the backend venv
+pip install -e cli/   # from repo root, inside backend/.venv
+```
+
+Verify:
+
+```bash
+bench --help
+```
+
+---
+
+## Authentication
+
+```bash
+bench login --email you@example.com
+# prompts for password, saves token to ~/.bench/config.json
+```
+
+Alternatively set environment variables to skip the config file:
+
+```bash
+export BENCH_URL=http://localhost:8000
+export BENCH_TOKEN=ab_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Both `--url` and `--token` can also be passed as global flags on any command:
+
+```bash
+bench --url http://staging:8000 --token ab_xxx scenarios ls
+```
+
+---
+
+## bench run
+
+The primary command. Runs a single scenario and streams turn-by-turn results.
+
+```bash
+bench run --scenario booking-flow
+```
+
+```
+Running 5 turns against gpt-4o endpoint...
+  ✔ T1  Greet and confirm travel intent    120ms
+  ✔ T2  Collect origin and destination      98ms
+  ✔ T3  Call search_flights tool           340ms
+  ✔ T4  Present top 3 flight options       112ms
+  ✘ T5  Confirm booking — wrong total price  88ms
+
+  ✘ 1 failed  ✔ 4 passed
+
+  1 scenario · 758ms
+```
+
+Accepts a scenario **name** or **UUID**. Exits with code `1` if any turns fail — useful for CI.
+
+---
+
+## Scenarios
+
+```bash
+bench scenarios ls                      # list all scenarios
+bench scenarios get booking-flow        # inspect turns and expectations
+bench scenarios delete booking-flow     # delete (prompts for confirmation)
+bench scenarios delete booking-flow -y  # skip confirmation
+```
+
+`ls` output columns: `NAME · ID · TURNS · TAGS · UPDATED`
+
+`get` shows every turn with its user input and expectation count.
+
+---
+
+## Agents
+
+```bash
+bench agents ls                   # list all agents
+bench agents get my-booking-agent # inspect provider, model, connection config
+```
+
+---
+
+## Suites
+
+```bash
+bench suites ls                       # list all suites
+bench suites get regression-suite     # show scenarios inside the suite
+bench suites run regression-suite     # run all scenarios, poll and stream results
+bench suites delete regression-suite  # delete suite (not its scenarios)
+bench suites delete regression-suite -y
+```
+
+`bench suites run` starts all scenarios in parallel and prints each result as it completes:
+
+```
+Running 3 scenarios in suite regression-suite...
+  ✔ booking-flow   3/3 turns   306ms
+  ✔ cancellation   2/2 turns   204ms
+  ✘ refund-flow    1/2 turns   188ms
+
+  ✘ 1 failed  ✔ 2 passed
+
+  3 scenarios · 2341ms
+```
+
+---
+
+## Runs
+
+```bash
+bench runs ls                              # last 50 runs
+bench runs ls --scenario booking-flow      # filter by scenario
+bench runs ls --status failed              # filter by status
+bench runs get <run-id>                    # full detail with turn results
+bench runs delete <run-id>                 # delete a run
+bench runs delete <run-id> -y
+```
+
+Status values: `pending` · `running` · `passed` · `failed` · `error`
+
+---
+
+## CI usage
+
+```bash
+# In a GitHub Actions step
+bench run --scenario booking-flow \
+  --url $BENCH_URL \
+  --token $BENCH_TOKEN
+
+# Non-zero exit code automatically fails the step on any turn failure
+```
+
+See the [CI & Automation guide](/docs/guides/ci-automation) for a full GitHub Actions example.
+
+---
+
+## Command reference
+
+| Command | Description |
+|---|---|
+| `bench login` | Authenticate and save token |
+| `bench run --scenario <name\|id>` | Run a scenario |
+| `bench scenarios ls` | List scenarios |
+| `bench scenarios get <name\|id>` | Inspect a scenario |
+| `bench scenarios delete <name\|id>` | Delete a scenario |
+| `bench agents ls` | List agents |
+| `bench agents get <name\|id>` | Inspect an agent |
+| `bench suites ls` | List suites |
+| `bench suites get <name\|id>` | Inspect a suite |
+| `bench suites run <name\|id>` | Run a suite |
+| `bench suites delete <name\|id>` | Delete a suite |
+| `bench runs ls` | List recent runs |
+| `bench runs get <id>` | Inspect a run |
+| `bench runs delete <id>` | Delete a run |

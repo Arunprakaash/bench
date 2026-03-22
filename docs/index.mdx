@@ -86,28 +86,45 @@ mode: "custom"
       <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
         <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>Multi-turn scenarios</div>
         <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Define user messages, expected tool calls, and assertions for every turn in a conversation."}</div>
-        <img src="/features-svg/scenarios.svg" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
+        <img src="/features-svg/scenarios.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
       </div>
 
       {/* Card: Evaluation */}
       <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
         <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>LLM-based evaluation</div>
         <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"An LLM judge checks semantic intent."}</div>
-        <img src="/features-svg/evaluation.svg" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
+        <img src="/features-svg/evaluation.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
       </div>
 
       {/* Card: CI/CD */}
       <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
         <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>CI/CD integration</div>
         <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Trigger bench runs from GitHub Actions. Block merges when agent quality drops below your threshold."}</div>
-        <img src="/features-svg/cicd.svg" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
+        <img src="/features-svg/cicd.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
       </div>
 
       {/* Card: Failures */}
       <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px 28px 0",overflow:"hidden"}}>
         <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>Failure analysis</div>
         <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Triage failed runs from one place. See exactly which turn failed with judge reasoning inline."}</div>
-        <img src="/features-svg/failures.svg" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
+        <img src="/features-svg/failures.png" style={{width:"100%",display:"block",borderRadius:"10px 10px 0 0"}} />
+      </div>
+
+      {/* Card: CLI */}
+      <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"16px",padding:"28px",overflow:"hidden",gridColumn:"1 / -1"}}>
+        <div style={{fontWeight:700,fontSize:"1rem",color:"#0f172a",marginBottom:"6px"}}>CLI</div>
+        <div style={{fontSize:"0.875rem",color:"#64748b",marginBottom:"24px",lineHeight:1.6}}>{"Run scenarios, inspect agents, and manage suites directly from your terminal — no browser required."}</div>
+        <div style={{background:"#0d1117",borderRadius:"10px",padding:"18px 22px",fontFamily:"'Fira Code','Fira Mono',Menlo,Consolas,monospace",fontSize:"0.8rem",color:"#c9d1d9",lineHeight:1.9,overflowX:"auto"}}>
+          <div><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench scenarios ls</div>
+          <div style={{color:"rgba(255,255,255,0.45)",marginBottom:"8px"}}>{"booking-flow   3 turns   payments, travel   2h ago"}</div>
+          <div><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench run --scenario booking-flow</div>
+          <div style={{color:"rgba(255,255,255,0.35)"}}>{"Running 3 turns against gpt-4o endpoint..."}</div>
+          <div><span style={{color:"#3fb950"}}>✔ </span>{"T1  Greet and confirm travel intent"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"120ms"}</span></div>
+          <div><span style={{color:"#3fb950"}}>✔ </span>{"T2  Collect origin and destination"}<span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"98ms"}</span></div>
+          <div><span style={{color:"#f85149"}}>✘ </span><span style={{color:"#f85149"}}>{"T3  Confirm booking — wrong total price"}</span><span style={{color:"rgba(255,255,255,0.22)",marginLeft:"8px"}}>{"88ms"}</span></div>
+          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid rgba(255,255,255,0.07)"}}><span style={{color:"rgba(255,255,255,0.3)"}}>$ </span>bench runs ls --status failed</div>
+          <div style={{color:"rgba(255,255,255,0.45)"}}>{"<run-id>   booking-flow   failed   2/3   306ms   just now"}</div>
+        </div>
       </div>
 
     </div>
@@ -132,13 +149,13 @@ mode: "custom"
           <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Connect your agent</div>
           <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Point Bench at any HTTP endpoint. Add auth headers and configure the model."}</div>
         </div>
-        <img src="/features-svg/step-connect.svg" style={{width:"100%",display:"block",borderRadius:"16px"}} />
+        <img src="/features-svg/step-connect.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
       </div>
 
       <div style={{height:"1px",background:"#f1f5f9"}} />
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <img src="/features-svg/step-scenarios.svg" style={{width:"100%",display:"block",borderRadius:"16px"}} />
+        <img src="/features-svg/step-scenarios.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
         <div>
           <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>02</div>
           <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Write scenarios</div>
@@ -154,13 +171,13 @@ mode: "custom"
           <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Run and evaluate</div>
           <div style={{fontSize:"0.92rem",color:"#64748b",lineHeight:1.75}}>{"Bench runs each turn and evaluates every expectation with an LLM judge."}</div>
         </div>
-        <img src="/features-svg/step-evaluate.svg" style={{width:"100%",display:"block",borderRadius:"16px"}} />
+        <img src="/features-svg/step-evaluate.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
       </div>
 
       <div style={{height:"1px",background:"#f1f5f9"}} />
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"48px",alignItems:"center",padding:"40px 0"}}>
-        <img src="/features-svg/step-regressions.svg" style={{width:"100%",display:"block",borderRadius:"16px"}} />
+        <img src="/features-svg/step-regressions.png" style={{width:"100%",display:"block",borderRadius:"16px"}} />
         <div>
           <div style={{fontSize:"0.7rem",fontWeight:800,letterSpacing:"0.08em",color:"lab(40.8025 9.52566 -42.921)",marginBottom:"12px"}}>04</div>
           <div style={{fontWeight:700,fontSize:"1.15rem",color:"#0f172a",marginBottom:"12px"}}>Catch regressions</div>

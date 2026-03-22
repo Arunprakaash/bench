@@ -2,10 +2,10 @@
   "$schema": "https://mintlify.com/mint.json",
   "name": "Bench",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "/logo/dark.png",
+    "light": "/logo/light.png"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "colors": {
     "primary": "#355FA7",
     "light": "#6D8FDC",
@@ -48,7 +48,7 @@
     },
     {
       "group": "Guides",
-      "pages": ["docs/guides/connecting-agents", "docs/guides/ci-automation"]
+      "pages": ["docs/guides/connecting-agents", "docs/guides/ci-automation", "docs/guides/cli"]
     },
     {
       "group": "API Reference",
