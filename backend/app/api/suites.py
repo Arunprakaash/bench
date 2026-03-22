@@ -150,13 +150,12 @@ async def update_suite(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    wids = await get_user_workspace_ids(current_user.id, db)
     result = await db.execute(
-        select(Suite).options(selectinload(Suite.scenarios)).where(Suite.id == suite_id)
+        select(Suite).options(selectinload(Suite.scenarios)).where(Suite.id == suite_id, ownership_filter(Suite, current_user.id, wids))
     )
     suite = result.scalar_one_or_none()
     if not suite:
-        raise HTTPException(status_code=404, detail="Suite not found")
-    if suite.owner_user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Suite not found")
 
     if data.name is not None:
