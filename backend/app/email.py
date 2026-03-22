@@ -47,34 +47,95 @@ async def send_email(to: str, subject: str, html: str, text: str) -> bool:
 
 def invite_email(workspace_name: str, role: str, invite_url: str, inviter_name: str) -> tuple[str, str, str]:
     """Returns (subject, html, plain_text) for a workspace invite email."""
-    subject = f"You've been invited to join {workspace_name} on Bench"
+    subject = f"Join {workspace_name} on Bench"
     plain = (
         f"Hi,\n\n"
-        f"{inviter_name} has invited you to join the workspace \"{workspace_name}\" on Bench as a {role}.\n\n"
+        f"{inviter_name} invited you to join \"{workspace_name}\" on Bench as a {role}.\n\n"
         f"Accept your invitation:\n{invite_url}\n\n"
-        f"If you don't have a Bench account yet, you'll be prompted to create one.\n\n"
-        f"— The Bench team"
+        f"If you don't have a Bench account yet, you'll be prompted to create one first.\n\n"
+        f"— Bench"
     )
-    html = f"""
-<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;max-width:480px;margin:40px auto;color:#111;">
-  <div style="text-align:center;margin-bottom:24px;">
-    <span style="display:inline-block;background:#f0f4ff;border-radius:12px;padding:12px 16px;font-size:24px;">⚗️</span>
-    <h1 style="font-size:20px;margin:12px 0 4px;">You've been invited to Bench</h1>
-  </div>
-  <p style="color:#444;">{inviter_name} has invited you to join <strong>{workspace_name}</strong> as a <strong>{role}</strong>.</p>
-  <div style="text-align:center;margin:28px 0;">
-    <a href="{invite_url}"
-       style="background:#4f46e5;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">
-      Accept invitation
-    </a>
-  </div>
-  <p style="color:#888;font-size:13px;">
-    If you don't have a Bench account yet, you'll be prompted to create one first.<br><br>
-    Or copy this link: <a href="{invite_url}" style="color:#4f46e5;">{invite_url}</a>
-  </p>
-</body>
-</html>
-"""
+    html = f"""<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+    </head>
+    <body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="padding:48px 16px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;">
+
+              <!-- Logo + heading -->
+              <tr>
+                <td align="center" style="padding-bottom:24px;">
+                  <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#eef2ff;border:1px solid #c7d2fe;margin-bottom:16px;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                      <circle cx="6.5" cy="6.5" r="2.7" fill="#4f46e5"/>
+                      <circle cx="17.5" cy="6.5" r="2.7" fill="#4f46e5"/>
+                      <circle cx="12" cy="17.5" r="2.7" fill="#4f46e5"/>
+                      <path d="M8.5 8.2L10.5 12.2M15.5 8.2L13.5 12.2M9.8 15.4H14.2" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+
+                  <h1 style="margin:0;font-size:22px;font-weight:700;color:#0f0f0f;letter-spacing:-0.3px;">
+                    You're invited to join {workspace_name}
+                  </h1>
+                </td>
+              </tr>
+
+              <!-- Card -->
+              <tr>
+                <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;">
+
+                  <!-- Single clean sentence -->
+                  <p style="margin:0 0 24px;font-size:14px;color:#6b7280;text-align:center;line-height:1.6;">
+                    <strong style="color:#111827;">{inviter_name}</strong> invited you to join
+                    <strong style="color:#111827;">{workspace_name}</strong> on Bench as a
+                    <strong style="color:#111827;">{role}</strong>.
+                  </p>
+
+                  <!-- CTA -->
+                  <div style="text-align:center;margin-bottom:16px;">
+                    <a href="{invite_url}"
+                       style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:11px 32px;border-radius:8px;font-weight:600;font-size:14px;letter-spacing:0.01em;">
+                      Join workspace
+                    </a>
+                  </div>
+
+                  <!-- Trust signal -->
+                  <p style="margin:0 0 20px;font-size:12px;color:#9ca3af;text-align:center;">
+                    Invitation sent by {inviter_name}
+                  </p>
+
+                  <hr style="border:none;border-top:1px solid #f3f4f6;margin:0 0 20px;">
+
+                  <!-- Footer copy -->
+                  <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">
+                    You’ll be asked to sign in or create an account.<br>
+                    Or copy this link:
+                    <a href="{invite_url}" style="color:#4f46e5;word-break:break-all;">
+                      {invite_url}
+                    </a>
+                  </p>
+
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="padding-top:20px;">
+                  <p style="margin:0;font-size:12px;color:#9ca3af;">
+                    Bench — Test and evaluate AI agents with confidence
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>"""
     return subject, html, plain
