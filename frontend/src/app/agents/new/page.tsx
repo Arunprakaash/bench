@@ -470,7 +470,8 @@ export default function NewAgentPage() {
                 }}
               >
                 <SelectTrigger id="agent-provider">
-                  <SelectValue />
+                  <SelectValue className="sr-only" />
+                  <span>{providerType === "rest_api" ? "HTTP Agent" : "Local Python"}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="local_python">Local Python</SelectItem>
