@@ -2,7 +2,14 @@
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { FlaskConical, Play, CheckCircle, XCircle, TrendingDown, TrendingUp } from "@/lib/icons";
+import {
+  FlaskConical,
+  Play,
+  CheckCircle,
+  XCircle,
+  TrendingDown,
+  TrendingUp,
+} from "@/lib/icons";
 import type { TestRunListItem, ScenarioListItem } from "@/lib/api";
 
 interface StatsCardsProps {
@@ -43,7 +50,11 @@ function lastNDaysKeys(n: number): string[] {
   return out;
 }
 
-function betweenDays(d: Date, daysAgoStart: number, daysAgoEndExclusive: number) {
+function betweenDays(
+  d: Date,
+  daysAgoStart: number,
+  daysAgoEndExclusive: number,
+) {
   const t = startOfDay(new Date());
   const start = new Date(t);
   start.setDate(start.getDate() - daysAgoStart);
@@ -52,10 +63,17 @@ function betweenDays(d: Date, daysAgoStart: number, daysAgoEndExclusive: number)
   return d >= start && d < end;
 }
 
-function trendFromRuns30(runs: TestRunListItem[], metric: (slice: TestRunListItem[]) => number): Trend {
+function trendFromRuns30(
+  runs: TestRunListItem[],
+  metric: (slice: TestRunListItem[]) => number,
+): Trend {
   const dates = runs.map((r) => ({ r, d: new Date(r.created_at) }));
-  const recent = dates.filter(({ d }) => betweenDays(d, 30, 0)).map(({ r }) => r);
-  const prev = dates.filter(({ d }) => betweenDays(d, 60, 30)).map(({ r }) => r);
+  const recent = dates
+    .filter(({ d }) => betweenDays(d, 30, 0))
+    .map(({ r }) => r);
+  const prev = dates
+    .filter(({ d }) => betweenDays(d, 60, 30))
+    .map(({ r }) => r);
   return pctChange(metric(recent), metric(prev));
 }
 
@@ -99,7 +117,8 @@ function seriesPassFailPerDay(
     const k = dayKey(new Date(r.created_at));
     if (!passed.has(k)) continue;
     if (r.status === "passed") passed.set(k, (passed.get(k) || 0) + 1);
-    else if (r.status === "failed" || r.status === "error") failed.set(k, (failed.get(k) || 0) + 1);
+    else if (r.status === "failed" || r.status === "error")
+      failed.set(k, (failed.get(k) || 0) + 1);
   }
 
   return {
@@ -108,7 +127,10 @@ function seriesPassFailPerDay(
   };
 }
 
-function seriesScenariosCreatedPerDay(scenarios: ScenarioListItem[], days = 14): number[] {
+function seriesScenariosCreatedPerDay(
+  scenarios: ScenarioListItem[],
+  days = 14,
+): number[] {
   const keys = lastNDaysKeys(days);
   const counts = new Map<string, number>(keys.map((k) => [k, 0]));
   for (const s of scenarios) {
@@ -118,7 +140,13 @@ function seriesScenariosCreatedPerDay(scenarios: ScenarioListItem[], days = 14):
   return keys.map((k) => counts.get(k) || 0);
 }
 
-function Bars({ values, colorClass }: { values: number[]; colorClass: string }) {
+function Bars({
+  values,
+  colorClass,
+}: {
+  values: number[];
+  colorClass: string;
+}) {
   const max = Math.max(1, ...values);
   return (
     <div className="flex items-end gap-1.5 h-14">
@@ -127,7 +155,10 @@ function Bars({ values, colorClass }: { values: number[]; colorClass: string }) 
         return (
           <div
             key={i}
-            className={cn("w-1.5 rounded-full bg-muted/25 dark:bg-white/8", colorClass)}
+            className={cn(
+              "w-1.5 rounded-full bg-muted/25 dark:bg-white/8",
+              colorClass,
+            )}
             style={{ height: `${h}px` }}
             aria-hidden="true"
           />
@@ -144,10 +175,7 @@ function StackedBars({
   passed: number[];
   failed: number[];
 }) {
-  const max = Math.max(
-    1,
-    ...passed.map((p, i) => p + (failed[i] || 0)),
-  );
+  const max = Math.max(1, ...passed.map((p, i) => p + (failed[i] || 0)));
 
   return (
     <div className="flex items-end gap-1.5 h-14" aria-hidden="true">
@@ -155,7 +183,8 @@ function StackedBars({
         const f = failed[i] || 0;
         const total = p + f;
         const h = 8 + Math.round((total / max) * 44);
-        const passedH = total === 0 ? 0 : Math.max(1, Math.round((p / total) * h));
+        const passedH =
+          total === 0 ? 0 : Math.max(1, Math.round((p / total) * h));
         const failedH = Math.max(0, h - passedH);
 
         return (
@@ -184,8 +213,11 @@ function StackedBars({
 export function StatsCards({ scenarios, runs }: StatsCardsProps) {
   const totalRuns = runs.length;
   const passedRuns = runs.filter((r) => r.status === "passed").length;
-  const failedRuns = runs.filter((r) => r.status === "failed" || r.status === "error").length;
-  const passRate = totalRuns > 0 ? Math.round((passedRuns / totalRuns) * 100) : 0;
+  const failedRuns = runs.filter(
+    (r) => r.status === "failed" || r.status === "error",
+  ).length;
+  const passRate =
+    totalRuns > 0 ? Math.round((passedRuns / totalRuns) * 100) : 0;
 
   const scenariosTrend = trendFromScenarios30(scenarios);
   const totalRunsTrend = trendFromRuns30(runs, (slice) => slice.length);
@@ -194,14 +226,16 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
     const passed = slice.filter((r) => r.status === "passed").length;
     return total > 0 ? Math.round((passed / total) * 100) : 0;
   });
-  const failuresTrend = trendFromRuns30(runs, (slice) =>
-    slice.filter((r) => r.status === "failed" || r.status === "error").length,
+  const failuresTrend = trendFromRuns30(
+    runs,
+    (slice) =>
+      slice.filter((r) => r.status === "failed" || r.status === "error").length,
   );
 
-  const scenariosSeries = seriesScenariosCreatedPerDay(scenarios, 14);
-  const totalRunsSeries = seriesRunsPerDay(runs, 14);
-  const passFailSeries = seriesPassFailPerDay(runs, 14);
-  const failuresSeries = seriesFailuresPerDay(runs, 14);
+  const scenariosSeries = seriesScenariosCreatedPerDay(scenarios, 7);
+  const totalRunsSeries = seriesRunsPerDay(runs, 7);
+  const passFailSeries = seriesPassFailPerDay(runs, 7);
+  const failuresSeries = seriesFailuresPerDay(runs, 7);
 
   const stats: Array<{
     title: string;
@@ -210,7 +244,9 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
     icon: typeof FlaskConical;
     tone: "brand" | "success" | "danger";
     trend?: Trend;
-    chart: { type: "bars"; values: number[] } | { type: "stacked"; passed: number[]; failed: number[] };
+    chart:
+      | { type: "bars"; values: number[] }
+      | { type: "stacked"; passed: number[]; failed: number[] };
   }> = [
     {
       title: "Scenarios",
@@ -237,7 +273,11 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
       subtitle: `${Intl.NumberFormat().format(passedRuns)} passed`,
       tone: "success",
       trend: passRateTrend,
-      chart: { type: "stacked", passed: passFailSeries.passed, failed: passFailSeries.failed },
+      chart: {
+        type: "stacked",
+        passed: passFailSeries.passed,
+        failed: passFailSeries.failed,
+      },
     },
     {
       title: "Failures",
@@ -271,10 +311,14 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
             aria-hidden="true"
           />
           <div className="relative z-10 p-5">
-            <p className="text-sm font-semibold text-foreground/85 dark:text-foreground/90">{stat.title}</p>
+            <p className="text-sm font-semibold text-foreground/85 dark:text-foreground/90">
+              {stat.title}
+            </p>
 
             <div className="mt-3 flex items-end gap-2">
-              <p className="text-4xl font-semibold tracking-tight tabular-nums">{stat.value}</p>
+              <p className="text-4xl font-semibold tracking-tight tabular-nums">
+                {stat.value}
+              </p>
             </div>
 
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground dark:text-muted-foreground">
@@ -300,15 +344,20 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
               <span>this month</span>
             </div>
 
-            <p className="mt-1 text-xs text-muted-foreground">{stat.subtitle}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stat.subtitle}
+            </p>
           </div>
 
           <div
             className={cn(
               "pointer-events-none absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-inset",
-              stat.tone === "brand" && "bg-primary/10 text-primary ring-primary/15",
-              stat.tone === "success" && "bg-green-500/10 text-green-600 dark:text-green-300 ring-green-500/15",
-              stat.tone === "danger" && "bg-red-500/10 text-red-600 dark:text-red-300 ring-red-500/15",
+              stat.tone === "brand" &&
+                "bg-primary/10 text-primary ring-primary/15",
+              stat.tone === "success" &&
+                "bg-green-500/10 text-green-600 dark:text-green-300 ring-green-500/15",
+              stat.tone === "danger" &&
+                "bg-red-500/10 text-red-600 dark:text-red-300 ring-red-500/15",
             )}
             aria-hidden="true"
           >
@@ -320,13 +369,17 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
             aria-hidden="true"
           >
             {stat.chart.type === "stacked" ? (
-              <StackedBars passed={stat.chart.passed} failed={stat.chart.failed} />
+              <StackedBars
+                passed={stat.chart.passed}
+                failed={stat.chart.failed}
+              />
             ) : (
               <Bars
                 values={stat.chart.values}
                 colorClass={cn(
                   stat.tone === "brand" && "bg-primary/35 dark:bg-primary/60",
-                  stat.tone === "success" && "bg-green-500/35 dark:bg-green-500/55",
+                  stat.tone === "success" &&
+                    "bg-green-500/35 dark:bg-green-500/55",
                   stat.tone === "danger" && "bg-red-500/35 dark:bg-red-500/55",
                 )}
               />
