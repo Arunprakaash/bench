@@ -51,11 +51,16 @@ def login(email: str, password: str, url: str):
 
 
 @cli.command()
-@click.option("--scenario", required=True, help="Scenario name or ID.")
+@click.argument("scenario_arg", metavar="SCENARIO", required=False, default=None)
+@click.option("--scenario", "scenario_opt", default=None, help="Scenario name or ID (alternative to positional).")
 @click.pass_context
-def run(ctx, scenario: str):
+def run(ctx, scenario_arg: str | None, scenario_opt: str | None):
     """Run a scenario and print turn-by-turn results."""
     from bench._ctx import make_client
+
+    scenario = scenario_arg or scenario_opt
+    if not scenario:
+        raise click.UsageError("Missing argument 'SCENARIO'. Pass it as a positional arg or --scenario.")
 
     client = make_client(ctx)
 

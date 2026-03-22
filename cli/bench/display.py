@@ -34,8 +34,11 @@ def _ago(dt_str: str) -> str:
         return dt_str[:10] if dt_str else "—"
 
 
-def _tags(tags: list | None) -> str:
-    return ", ".join(tags) if tags else "—"
+def _tags(tags: list | None, max_len: int = 30) -> str:
+    if not tags:
+        return "—"
+    joined = ", ".join(tags)
+    return joined[:max_len] + "…" if len(joined) > max_len else joined
 
 
 # ------------------------------------------------------------------
@@ -101,11 +104,11 @@ def print_summary(run: dict, scenario_name: str) -> None:
 
 def print_scenarios_table(scenarios: list) -> None:
     t = Table(show_header=True, header_style="bold", box=None, pad_edge=False, show_edge=False)
-    t.add_column("NAME", min_width=24)
-    t.add_column("ID", style="dim", min_width=36)
-    t.add_column("TURNS", justify="right", min_width=5)
-    t.add_column("TAGS", min_width=16)
-    t.add_column("UPDATED", justify="right", min_width=10)
+    t.add_column("NAME", min_width=24, max_width=36, no_wrap=True, overflow="ellipsis")
+    t.add_column("ID", style="dim", min_width=36, no_wrap=True)
+    t.add_column("TURNS", justify="right", min_width=5, no_wrap=True)
+    t.add_column("TAGS", min_width=16, max_width=32, no_wrap=True, overflow="ellipsis")
+    t.add_column("UPDATED", justify="right", min_width=10, no_wrap=True)
     for s in scenarios:
         t.add_row(
             s["name"],
@@ -149,12 +152,12 @@ def print_scenario_detail(s: dict) -> None:
 
 def print_agents_table(agents: list) -> None:
     t = Table(show_header=True, header_style="bold", box=None, pad_edge=False, show_edge=False)
-    t.add_column("NAME", min_width=24)
-    t.add_column("ID", style="dim", min_width=36)
-    t.add_column("PROVIDER", min_width=12)
-    t.add_column("MODEL", min_width=14)
-    t.add_column("TAGS", min_width=16)
-    t.add_column("UPDATED", justify="right", min_width=10)
+    t.add_column("NAME", min_width=24, max_width=36, no_wrap=True, overflow="ellipsis")
+    t.add_column("ID", style="dim", min_width=36, no_wrap=True)
+    t.add_column("PROVIDER", min_width=12, no_wrap=True)
+    t.add_column("MODEL", min_width=14, no_wrap=True, overflow="ellipsis")
+    t.add_column("TAGS", min_width=16, max_width=28, no_wrap=True, overflow="ellipsis")
+    t.add_column("UPDATED", justify="right", min_width=10, no_wrap=True)
     for a in agents:
         t.add_row(
             a["name"],
@@ -237,12 +240,12 @@ def _status_cell(status: str) -> str:
 
 def print_runs_table(runs: list) -> None:
     t = Table(show_header=True, header_style="bold", box=None, pad_edge=False, show_edge=False)
-    t.add_column("ID", style="dim", min_width=36)
-    t.add_column("SCENARIO", min_width=22)
-    t.add_column("STATUS", min_width=8)
-    t.add_column("RESULT", justify="right", min_width=9)
-    t.add_column("DURATION", justify="right", min_width=9)
-    t.add_column("CREATED", justify="right", min_width=10)
+    t.add_column("ID", style="dim", min_width=36, no_wrap=True)
+    t.add_column("SCENARIO", min_width=22, max_width=34, no_wrap=True, overflow="ellipsis")
+    t.add_column("STATUS", min_width=8, no_wrap=True)
+    t.add_column("RESULT", justify="right", min_width=9, no_wrap=True)
+    t.add_column("DURATION", justify="right", min_width=9, no_wrap=True)
+    t.add_column("CREATED", justify="right", min_width=10, no_wrap=True)
     for r in runs:
         passed = r.get("passed_turns", 0)
         total = r.get("total_turns", 0)
