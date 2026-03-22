@@ -39,7 +39,6 @@ const navItems = [
   { href: "/failures", label: "Failures", icon: FailureInbox },
   { href: "/runs", label: "Test Runs", icon: Play },
   { href: "/automation", label: "Automation", icon: RadiusSetting },
-  { href: "/workspaces", label: "Workspaces", icon: Team },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
@@ -366,6 +365,38 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             </div>
           </DialogContent>
         </Dialog>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link href="/workspaces">
+                  <Button
+                    type="button"
+                    variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    aria-label="Workspaces"
+                  >
+                    <Team className="h-4 w-4" />
+                  </Button>
+                </Link>
+              }
+            />
+            <TooltipContent side="right">Workspaces</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Link href="/workspaces" className="w-full">
+            <Button
+              type="button"
+              variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
+              size="sm"
+              className="w-full justify-start gap-2"
+            >
+              <Team className="h-4 w-4" />
+              Workspaces
+            </Button>
+          </Link>
+        )}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger
