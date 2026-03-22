@@ -644,6 +644,19 @@ export const api = {
       request<void>(`/api/workspaces/${id}/members/${userId}`, {
         method: "DELETE",
       }),
+    createInvite: (id: string, data: { email: string; role?: string }) =>
+      request<{ token: string; invite_url: string; email_sent: boolean }>(`/api/workspaces/${id}/invites`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+  invites: {
+    getInfo: (token: string) =>
+      request<{ token: string; workspace_id: string; workspace_name: string; role: string; expires_at: string | null }>(
+        `/api/invites/${token}`
+      ),
+    accept: (token: string) =>
+      request<{ workspace_id: string; already_member: boolean }>(`/api/invites/${token}/accept`, { method: "POST" }),
   },
   automation: {
     listSchedules: () => request<ScheduledRun[]>("/api/automation/schedules"),

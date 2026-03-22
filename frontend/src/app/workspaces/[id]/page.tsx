@@ -49,6 +49,7 @@ export default function WorkspaceDetailPage() {
   const [inviteRole, setInviteRole] = useState("member");
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteResult, setInviteResult] = useState<{ invite_url: string; email_sent: boolean } | null>(null);
 
   // Delete workspace
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -112,17 +113,15 @@ export default function WorkspaceDetailPage() {
     }
     setInviting(true);
     setInviteError(null);
+    setInviteResult(null);
     try {
-      await api.workspaces.inviteMember(id, {
-        email: inviteEmail.trim(),
-        role: inviteRole,
-      });
-      setInviteOpen(false);
-      setInviteEmail("");
-      setInviteRole("member");
-      await load();
+      const result = await api.workspaces.createInvite(id, { email: inviteEmail.trim(), role: inviteRole });
+      setInviteResult({ invite_url: result.invite_url, email_sent: result.email_sent });
+      if (!result.email_sent) {
+        await navigator.clipboard.writeText(result.invite_url).catch(() => {});
+      }
     } catch (e) {
-      setInviteError((e as Error).message || "Failed to invite member.");
+      setInviteError((e as Error).message || "Failed to send invite.");
     } finally {
       setInviting(false);
     }
@@ -206,9 +205,9 @@ export default function WorkspaceDetailPage() {
             </span>
           </h2>
           {isOwner && (
-            <Button size="sm" onClick={() => setInviteOpen(true)}>
+            <Button size="sm" onClick={() => { setInviteOpen(true); setInviteError(null); setInviteResult(null); setInviteEmail(""); }}>
               <UserGroupAdd className="mr-2 h-4 w-4" />
-              Invite
+              Invite member
             </Button>
           )}
         </div>
@@ -309,52 +308,74 @@ export default function WorkspaceDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            {inviteError && (
-              <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-3 text-sm">
-                {inviteError}
+            {inviteResult ? (
+              <div className="space-y-4">
+                {inviteResult.email_sent ? (
+                  <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 p-4 text-sm text-green-800 dark:text-green-300">
+                    ✓ Invite email sent to <strong>{inviteEmail}</strong>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Email could not be sent (SMTP not configured). Share this link manually:</p>
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-xs">
+                      <span className="flex-1 truncate font-mono text-muted-foreground">{inviteResult.invite_url}</span>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0" onClick={() => navigator.clipboard.writeText(inviteResult!.invite_url)}>
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Link already copied to clipboard.</p>
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setInviteResult(null); setInviteEmail(""); setInviteRole("member"); }}>
+                    Invite another
+                  </Button>
+                  <Button onClick={() => { setInviteOpen(false); setInviteResult(null); setInviteEmail(""); setInviteRole("member"); }}>
+                    Done
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <>
+                {inviteError && (
+                  <div className="border border-destructive/20 bg-destructive/5 text-destructive rounded-lg p-3 text-sm">
+                    {inviteError}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    autoFocus
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="teammate@example.com…"
+                    onKeyDown={(e) => { if (e.key === "Enter") void handleInvite(); }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invite-role">Role</Label>
+                  <select
+                    id="invite-role"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="member">Member</option>
+                    <option value="owner">Owner</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setInviteOpen(false); setInviteEmail(""); setInviteRole("member"); setInviteError(null); }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
+                    {inviting ? "Sending…" : "Send invite"}
+                  </Button>
+                </div>
+              </>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Email</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="teammate@example.com…"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleInvite();
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="invite-role">Role</Label>
-              <select
-                id="invite-role"
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="member">Member</option>
-                <option value="owner">Owner</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setInviteOpen(false);
-                  setInviteEmail("");
-                  setInviteRole("member");
-                  setInviteError(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleInvite} disabled={inviting}>
-                {inviting ? "Inviting…" : "Invite"}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>

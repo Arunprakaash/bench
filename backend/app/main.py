@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api import agents, auth, automation, chat, dev, failures, runs, scenarios, suites, workspaces
+from app.api import agents, auth, automation, chat, dev, failures, invites, runs, scenarios, suites, workspaces
 from app.config import settings
 from app.database import Base, engine
 import app.models  # noqa: F401
@@ -307,6 +307,22 @@ async def lifespan(app: FastAPI):
         ):
             await conn.execute(text(index_sql))
 
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS workspace_invites (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                token VARCHAR(64) UNIQUE NOT NULL,
+                role VARCHAR(50) NOT NULL DEFAULT 'member',
+                created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+                expires_at TIMESTAMPTZ,
+                used_at TIMESTAMPTZ,
+                used_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )
+        """))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_invites_token ON workspace_invites(token)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_invites_workspace_id ON workspace_invites(workspace_id)"))
+
         await conn.run_sync(Base.metadata.create_all)
     scheduler_task = asyncio.create_task(_schedule_loop())
     yield
@@ -357,6 +373,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(automation.router, prefix="/api/automation", tags=["automation"])
 app.include_router(workspaces.router, prefix="/api/workspaces", tags=["workspaces"])
+app.include_router(invites.router, prefix="/api/invites", tags=["invites"])
 app.include_router(dev.router, prefix="/api/dev", tags=["dev"])
 
 sio = socketio.AsyncServer(

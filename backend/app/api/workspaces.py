@@ -1,6 +1,8 @@
+import secrets
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,6 +12,7 @@ from app.api.auth import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
+from app.models.workspace_invite import WorkspaceInvite
 from app.models.workspace_members import WorkspaceMember
 from app.schemas.workspace import (
     InviteMemberRequest,
@@ -274,3 +277,41 @@ async def remove_member(
 
     await db.delete(target)
     await db.commit()
+
+
+class WorkspaceInviteRequest(BaseModel):
+    email: str
+    role: str = "member"
+
+
+@router.post("/{workspace_id}/invites")
+async def create_workspace_invite(
+    workspace_id: UUID,
+    data: WorkspaceInviteRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.email import invite_email, send_email
+    from app.config import settings
+
+    caller = await assert_workspace_member(workspace_id, current_user.id, db)
+    if caller.role != "owner":
+        raise HTTPException(status_code=403, detail="Only workspace owners can generate invite links.")
+
+    workspace = await db.get(Workspace, workspace_id)
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+
+    role = data.role if data.role in ("owner", "member") else "member"
+    token = secrets.token_urlsafe(32)
+    invite = WorkspaceInvite(workspace_id=workspace_id, token=token, role=role, created_by=current_user.id)
+    db.add(invite)
+    await db.commit()
+    await db.refresh(invite)
+
+    invite_url = f"{settings.app_base_url}/invite/{token}"
+    inviter_name = current_user.display_name or current_user.email
+    subject, html, plain = invite_email(workspace.name, role, invite_url, inviter_name)
+    email_sent = await send_email(data.email.strip(), subject, html, plain)
+
+    return {"token": invite.token, "invite_url": invite_url, "email_sent": email_sent}

@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     # Dev-friendly default. In production, set `CORS_ORIGINS` explicitly.
     cors_origins: list[str] = ["*"]
 
+    # SMTP email (optional — invites fall back to link-only if not configured)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    app_base_url: str = "http://localhost:3000"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

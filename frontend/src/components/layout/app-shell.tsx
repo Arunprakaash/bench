@@ -36,7 +36,7 @@ function TopBarBreadcrumbs() {
 }
 
 function isPublicAuthPath(pathname: string) {
-  return pathname === "/auth" || pathname.startsWith("/auth/") || pathname === "/onboarding";
+  return pathname === "/auth" || pathname.startsWith("/auth/") || pathname === "/onboarding" || pathname.startsWith("/invite/");
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
