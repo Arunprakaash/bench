@@ -6,6 +6,9 @@ const config: Config = {
   title: 'Bench',
   tagline: 'Agent testing platform for teams building AI agents',
   favicon: 'img/favicon.ico',
+  headTags: [
+    { tagName: 'link', attributes: { rel: 'icon', type: 'image/svg+xml', href: '/agent-bench/img/logo.svg' } },
+  ],
 
   future: {
     v4: true,
@@ -51,6 +54,10 @@ const config: Config = {
     },
     navbar: {
       title: 'Bench',
+      logo: {
+        alt: 'Bench',
+        src: 'img/logo.svg',
+      },
       items: [
         {
           type: 'docSidebar',

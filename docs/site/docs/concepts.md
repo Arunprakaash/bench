@@ -19,14 +19,7 @@ Agent → Scenario → Run → Turn Results
 
 ## Agent
 
-An agent is the system under test. It receives a user message and returns a structured response (events).
-
-Bench supports two connector types:
-
-| Type | Use case |
-|---|---|
-| `local_python` | Agent implemented as a Python class in the backend codebase |
-| `rest_api` | Agent running as an external HTTP service |
+An agent is the system under test. It receives a user message and returns a structured response (events). Bench connects to your agent over HTTP — you implement one endpoint and Bench handles the rest.
 
 Each agent stores:
 - **Connection config** — how to reach the agent (endpoint, headers, timeout)

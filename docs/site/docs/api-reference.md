@@ -146,8 +146,6 @@ Create an agent.
 }
 ```
 
-For `local_python` agents, omit `connection_config` and set `module` and `agent_class` instead.
-
 ### `PUT /api/agents/{agent_id}`
 
 Update agent configuration. All fields are optional.
