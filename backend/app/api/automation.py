@@ -198,7 +198,7 @@ async def delete_schedule(
     db: AsyncSession = Depends(get_db),
 ):
     schedule = (
-        await db.execute(select(ScheduledRun).where(ScheduledRun.id == schedule_id, await _schedule_access_filter(current_user.id, db)))
+        await db.execute(select(ScheduledRun).where(ScheduledRun.id == schedule_id, ScheduledRun.owner_user_id == current_user.id))
     ).scalar_one_or_none()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
