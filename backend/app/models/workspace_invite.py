@@ -17,6 +17,7 @@ class WorkspaceInvite(Base):
     )
     token: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
+    invited_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

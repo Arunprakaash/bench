@@ -284,6 +284,67 @@ class WorkspaceInviteRequest(BaseModel):
     role: str = "member"
 
 
+@router.get("/{workspace_id}/invites")
+async def list_workspace_invites(
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await assert_workspace_member(workspace_id, current_user.id, db)
+    from datetime import datetime, timezone
+    from app.models.workspace_invite import WorkspaceInvite
+    from app.config import settings
+
+    result = await db.execute(
+        select(WorkspaceInvite)
+        .where(
+            WorkspaceInvite.workspace_id == workspace_id,
+            WorkspaceInvite.used_at.is_(None),
+        )
+        .order_by(WorkspaceInvite.created_at.desc())
+    )
+    invites = result.scalars().all()
+    now = datetime.now(timezone.utc)
+    return [
+        {
+            "token": inv.token,
+            "role": inv.role,
+            "invited_email": inv.invited_email,
+            "invite_url": f"{settings.app_base_url}/invite/{inv.token}",
+            "created_at": inv.created_at,
+            "expires_at": inv.expires_at,
+            "expired": bool(inv.expires_at and inv.expires_at < now),
+        }
+        for inv in invites
+    ]
+
+
+@router.delete("/{workspace_id}/invites/{token}", status_code=204)
+async def revoke_workspace_invite(
+    workspace_id: UUID,
+    token: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.workspace_invite import WorkspaceInvite
+
+    caller = await assert_workspace_member(workspace_id, current_user.id, db)
+    if caller.role != "owner":
+        raise HTTPException(status_code=403, detail="Only workspace owners can revoke invites.")
+
+    result = await db.execute(
+        select(WorkspaceInvite).where(
+            WorkspaceInvite.workspace_id == workspace_id,
+            WorkspaceInvite.token == token,
+        )
+    )
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found.")
+    await db.delete(invite)
+    await db.commit()
+
+
 @router.post("/{workspace_id}/invites")
 async def create_workspace_invite(
     workspace_id: UUID,
@@ -304,7 +365,7 @@ async def create_workspace_invite(
 
     role = data.role if data.role in ("owner", "member") else "member"
     token = secrets.token_urlsafe(32)
-    invite = WorkspaceInvite(workspace_id=workspace_id, token=token, role=role, created_by=current_user.id)
+    invite = WorkspaceInvite(workspace_id=workspace_id, token=token, role=role, created_by=current_user.id, invited_email=data.email.strip().lower())
     db.add(invite)
     await db.commit()
     await db.refresh(invite)

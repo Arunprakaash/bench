@@ -51,6 +51,10 @@ export default function WorkspaceDetailPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteResult, setInviteResult] = useState<{ invite_url: string; email_sent: boolean } | null>(null);
 
+  // Pending invites
+  type PendingInvite = { token: string; role: string; invited_email: string | null; invite_url: string; created_at: string; expired: boolean };
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+
   // Delete workspace
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -60,8 +64,12 @@ export default function WorkspaceDetailPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const ws = await api.workspaces.get(id);
+      const [ws, invites] = await Promise.all([
+        api.workspaces.get(id),
+        api.workspaces.listInvites(id).catch(() => []),
+      ]);
       setWorkspace(ws);
+      setPendingInvites(invites);
       setItems([
         { label: "Workspaces", href: "/workspaces" },
         { label: ws.name },
@@ -120,6 +128,8 @@ export default function WorkspaceDetailPage() {
       if (!result.email_sent) {
         await navigator.clipboard.writeText(result.invite_url).catch(() => {});
       }
+      // Refresh pending invites list
+      api.workspaces.listInvites(id).then(setPendingInvites).catch(() => {});
     } catch (e) {
       setInviteError((e as Error).message || "Failed to send invite.");
     } finally {
@@ -147,6 +157,15 @@ export default function WorkspaceDetailPage() {
     } catch (e) {
       setDeleteError((e as Error).message || "Failed to delete workspace.");
       setDeleting(false);
+    }
+  };
+
+  const handleRevokeInvite = async (token: string) => {
+    try {
+      await api.workspaces.revokeInvite(id, token);
+      setPendingInvites((prev) => prev.filter((inv) => inv.token !== token));
+    } catch (e) {
+      setLoadError((e as Error).message || "Failed to revoke invite.");
     }
   };
 
@@ -256,6 +275,56 @@ export default function WorkspaceDetailPage() {
         </Table>
       </div>
 
+      {/* Pending invites section */}
+      {isOwner && pendingInvites.length > 0 && (
+        <div className="border rounded-lg">
+          <div className="px-4 py-3 border-b">
+            <h2 className="text-base font-semibold">
+              Pending Invites{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({pendingInvites.length})
+              </span>
+            </h2>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="text-right">Invited</TableHead>
+                <TableHead className="w-[60px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingInvites.map((inv) => (
+                <TableRow key={inv.token}>
+                  <TableCell>
+                    <span className="text-sm">{inv.invited_email ?? "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{inv.role}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {formatRelativeTime(inv.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      aria-label="Revoke invite"
+                      onClick={() => void handleRevokeInvite(inv.token)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
       {/* Edit dialog */}
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="sm:max-w-[420px]">
@@ -300,11 +369,15 @@ export default function WorkspaceDetailPage() {
 
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Invite Member</DialogTitle>
             <DialogDescription>
-              Invite a user to this workspace by email.
+              {inviteResult
+                ? inviteResult.email_sent
+                  ? `Invite sent to ${inviteEmail}.`
+                  : "SMTP not configured — share the link below manually."
+                : "Enter their email and we'll send them an invite link."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -316,14 +389,17 @@ export default function WorkspaceDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Email could not be sent (SMTP not configured). Share this link manually:</p>
-                    <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-xs">
-                      <span className="flex-1 truncate font-mono text-muted-foreground">{inviteResult.invite_url}</span>
-                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0" onClick={() => navigator.clipboard.writeText(inviteResult!.invite_url)}>
-                        Copy
-                      </Button>
+                    <div className="rounded-md border bg-muted/50 px-3 py-2 text-xs font-mono text-muted-foreground break-all leading-relaxed">
+                      {inviteResult.invite_url}
                     </div>
-                    <p className="text-xs text-muted-foreground">Link already copied to clipboard.</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigator.clipboard.writeText(inviteResult!.invite_url)}
+                    >
+                      Copy link
+                    </Button>
                   </div>
                 )}
                 <div className="flex justify-end gap-2">

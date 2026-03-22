@@ -313,6 +313,7 @@ async def lifespan(app: FastAPI):
                 workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
                 token VARCHAR(64) UNIQUE NOT NULL,
                 role VARCHAR(50) NOT NULL DEFAULT 'member',
+                invited_email VARCHAR(255),
                 created_by UUID REFERENCES users(id) ON DELETE SET NULL,
                 expires_at TIMESTAMPTZ,
                 used_at TIMESTAMPTZ,
@@ -320,6 +321,9 @@ async def lifespan(app: FastAPI):
                 created_at TIMESTAMPTZ DEFAULT now()
             )
         """))
+        await conn.execute(text(
+            "ALTER TABLE workspace_invites ADD COLUMN IF NOT EXISTS invited_email VARCHAR(255)"
+        ))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_invites_token ON workspace_invites(token)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_invites_workspace_id ON workspace_invites(workspace_id)"))
 

@@ -649,6 +649,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    listInvites: (id: string) =>
+      request<{ token: string; role: string; invited_email: string | null; invite_url: string; created_at: string; expires_at: string | null; expired: boolean }[]>(
+        `/api/workspaces/${id}/invites`
+      ),
+    revokeInvite: (id: string, token: string) =>
+      request<void>(`/api/workspaces/${id}/invites/${token}`, { method: "DELETE" }),
   },
   invites: {
     getInfo: (token: string) =>
