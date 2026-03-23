@@ -109,6 +109,6 @@ When a scenario that was passing starts failing, Bench creates a regression aler
 To check for new alerts via API:
 
 ```bash
-curl https://your-bench.example.com/api/alerts \
+curl "https://your-bench.example.com/api/automation/alerts?acknowledged=false" \
   -H "Authorization: Bearer $BENCH_TOKEN"
 ```

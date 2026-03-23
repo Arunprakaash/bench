@@ -22,7 +22,7 @@ Two token types are accepted:
 | Type | How to get | Expiry |
 |---|---|---|
 | JWT | `/api/auth/login` or `/api/auth/register` | 7 days |
-| API token | `/api/auth/api-token` | Never (until revoked) |
+| API token | `/api/auth/api-token` (POST) | Never (until revoked) |
 
 API tokens are prefixed with `ab_` and are recommended for CI/CD use.
 
@@ -38,4 +38,18 @@ All responses are JSON. Errors follow this format:
 }
 ```
 
-Standard HTTP status codes are used: `200`, `201`, `400`, `401`, `403`, `404`, `422`, `500`.
+Standard HTTP status codes are used: `200`, `201`, `204`, `400`, `401`, `403`, `404`, `422`, `500`.
+
+---
+
+## Route groups
+
+| Group | Base path | Description |
+|---|---|---|
+| Auth | `/api/auth` | Register, login, profile, API tokens |
+| Agents | `/api/agents` | Create and manage agents |
+| Scenarios | `/api/scenarios` | Define multi-turn test scenarios |
+| Suites | `/api/suites` | Group scenarios for batch runs |
+| Runs | `/api/runs` | Execute scenarios and retrieve results |
+| Failures | `/api/failures` | Failures inbox — failed and errored runs |
+| Automation | `/api/automation` | Scheduled runs and regression alerts |

@@ -1,0 +1,145 @@
+---
+title: Automation
+description: Schedule recurring runs and manage regression alerts.
+---
+
+## Schedules
+
+Schedules trigger scenario or suite runs automatically at a set interval.
+
+---
+
+### POST /api/automation/schedules
+
+Create a schedule.
+
+```bash
+curl -X POST http://localhost:8000/api/automation/schedules \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_type": "suite",
+    "suite_id": "your-suite-uuid",
+    "interval_minutes": 60
+  }'
+```
+
+**Request body**
+
+| Field | Required | Description |
+|---|---|---|
+| `target_type` | Yes | `"scenario"` or `"suite"` |
+| `scenario_id` | Conditional | Required when `target_type` is `"scenario"` |
+| `suite_id` | Conditional | Required when `target_type` is `"suite"` |
+| `interval_minutes` | No | Run frequency in minutes. Min `5`, max `10080` (1 week). Default `1440` (daily) |
+| `is_active` | No | Whether the schedule is active. Default `true` |
+| `config` | No | Optional run config overrides |
+
+**Response 201** — created schedule object.
+
+---
+
+### GET /api/automation/schedules
+
+List all schedules accessible to the current user.
+
+```bash
+curl http://localhost:8000/api/automation/schedules \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+---
+
+### GET /api/automation/schedules/{id}
+
+Get a single schedule.
+
+```bash
+curl http://localhost:8000/api/automation/schedules/$SCHEDULE_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+---
+
+### PUT /api/automation/schedules/{id}
+
+Update a schedule's interval, config, or active state. Updating `interval_minutes` also resets `next_run_at`.
+
+```bash
+curl -X PUT http://localhost:8000/api/automation/schedules/$SCHEDULE_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "is_active": false }'
+```
+
+**Request body**
+
+| Field | Description |
+|---|---|
+| `interval_minutes` | New interval (min 5, max 10080) |
+| `is_active` | Pause (`false`) or resume (`true`) the schedule |
+| `config` | Override run config |
+
+---
+
+### DELETE /api/automation/schedules/{id}
+
+Delete a schedule. Does not delete the scenario or suite.
+
+```bash
+curl -X DELETE http://localhost:8000/api/automation/schedules/$SCHEDULE_ID \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 204** (no body)
+
+---
+
+## Regression Alerts
+
+A regression alert is created automatically when a scenario that previously passed starts failing.
+
+---
+
+### GET /api/automation/alerts
+
+List regression alerts for the current user.
+
+```bash
+curl "http://localhost:8000/api/automation/alerts?acknowledged=false" \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Query params**
+
+| Param | Description |
+|---|---|
+| `acknowledged` | `true` to show only acknowledged alerts, `false` for unread only. Omit to return all |
+
+Returns up to 200 alerts ordered by `created_at` descending.
+
+**Response fields**
+
+| Field | Description |
+|---|---|
+| `id` | Alert UUID |
+| `scenario_id` | Scenario that regressed |
+| `run_id` | The failing run that triggered the alert |
+| `previous_run_id` | The last passing run |
+| `title` | Short description |
+| `detail` | Full description of the regression |
+| `is_acknowledged` | Whether the alert has been acknowledged |
+| `created_at` | When the alert was created |
+
+---
+
+### POST /api/automation/alerts/{id}/ack
+
+Acknowledge an alert (mark as read).
+
+```bash
+curl -X POST http://localhost:8000/api/automation/alerts/$ALERT_ID/ack \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 200** — updated alert object with `is_acknowledged: true`.

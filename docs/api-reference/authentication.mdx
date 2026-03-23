@@ -10,14 +10,22 @@ Create a new account.
 ```bash
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{ "email": "you@example.com", "password": "yourpassword" }'
+  -d '{ "email": "you@example.com", "password": "yourpassword", "display_name": "Your Name" }'
 ```
+
+**Request body**
+
+| Field | Required | Description |
+|---|---|---|
+| `email` | Yes | Email address |
+| `password` | Yes | Minimum 6 characters |
+| `display_name` | No | Display name shown in the UI |
 
 **Response 201**
 ```json
 {
   "token": "<jwt>",
-  "user": { "id": "...", "email": "you@example.com", "display_name": null }
+  "user": { "id": "...", "email": "you@example.com", "display_name": "Your Name", "avatar_url": null }
 }
 ```
 
@@ -33,14 +41,101 @@ curl -X POST http://localhost:8000/api/auth/login \
 
 **Response 200**
 ```json
-{ "token": "<jwt>", "user": { "id": "...", "email": "you@example.com" } }
+{ "token": "<jwt>", "user": { "id": "...", "email": "you@example.com", "display_name": null, "avatar_url": null } }
+```
+
+---
+
+## POST /api/auth/logout
+
+Invalidates the client-side session. No server state is changed (tokens are stateless JWTs).
+
+```bash
+curl -X POST http://localhost:8000/api/auth/logout \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 204** (no body)
+
+---
+
+## GET /api/auth/me
+
+Returns the currently authenticated user's profile.
+
+```bash
+curl http://localhost:8000/api/auth/me \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Response 200**
+```json
+{
+  "id": "...",
+  "email": "you@example.com",
+  "display_name": "Your Name",
+  "avatar_url": null
+}
+```
+
+---
+
+## PATCH /api/auth/me
+
+Update your display name or avatar URL.
+
+```bash
+curl -X PATCH http://localhost:8000/api/auth/me \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "display_name": "New Name" }'
+```
+
+**Response 200** — updated user object.
+
+---
+
+## POST /api/auth/change-password
+
+Change your account password.
+
+```bash
+curl -X POST http://localhost:8000/api/auth/change-password \
+  -H "Authorization: Bearer $BENCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "current_password": "old", "new_password": "newpassword" }'
+```
+
+**Response 204** (no body)
+
+Errors: `400` if current password is wrong, or new password is fewer than 6 characters, or same as current.
+
+---
+
+## GET /api/auth/api-token
+
+Check whether the current user has an API token, and view its metadata (prefix + last 4 characters). The full token is only returned when it is first created.
+
+```bash
+curl http://localhost:8000/api/auth/api-token \
+  -H "Authorization: Bearer $JWT_TOKEN"
+```
+
+**Response 200**
+```json
+{
+  "has_token": true,
+  "prefix": "ab_xxxx",
+  "last4": "zzzz",
+  "created_at": "2024-01-01T00:00:00Z"
+}
 ```
 
 ---
 
 ## POST /api/auth/api-token
 
-Generate a non-expiring API token for CI/CD use.
+Generate a non-expiring API token for CI/CD use. Only one token per user — generating a new one replaces the previous one.
 
 ```bash
 curl -X POST http://localhost:8000/api/auth/api-token \
@@ -49,8 +144,12 @@ curl -X POST http://localhost:8000/api/auth/api-token \
 
 **Response 201**
 ```json
-{ "token": "ab_xxxxxxxxxxxxxxxxxxxx" }
+{ "token": "ab_xxxxxxxxxxxxxxxxxxxx", "prefix": "ab_xxxx", "last4": "zzzz", "created_at": "..." }
 ```
+
+<Warning>
+  The full token is only returned once. Store it immediately — you cannot retrieve it again.
+</Warning>
 
 ---
 

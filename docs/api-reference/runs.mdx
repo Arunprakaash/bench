@@ -27,7 +27,7 @@ curl -X POST http://localhost:8000/api/runs \
 
 ## POST /api/runs/suite
 
-Run all scenarios in a suite. Returns an array of run objects.
+Start all scenarios in a suite in parallel. Returns immediately with an array of run objects in `pending` status — execution happens in the background.
 
 ```bash
 curl -X POST http://localhost:8000/api/runs/suite \
@@ -36,7 +36,7 @@ curl -X POST http://localhost:8000/api/runs/suite \
   -d '{ "suite_id": "your-suite-uuid" }'
 ```
 
-**Response 201** — array of run objects, one per scenario in the suite.
+**Response 201** — array of run objects (one per scenario), all with `status: "pending"`. Poll `GET /api/runs/{id}` for each run to get the final result, or use the WebSocket events `suite:scenario:done` and `suite:done` for real-time updates.
 
 ---
 
@@ -49,7 +49,7 @@ curl "http://localhost:8000/api/runs?status=failed&limit=50" \
   -H "Authorization: Bearer $BENCH_TOKEN"
 ```
 
-**Query params:** `status`, `scenario_id`, `limit`, `offset`
+**Query params:** `status`, `scenario_id`, `suite_id`, `agent_id`, `workspace_id`, `limit` (default 50)
 
 ---
 
@@ -74,3 +74,29 @@ curl -X DELETE http://localhost:8000/api/runs/$RUN_ID \
 ```
 
 **Response 204** (no body)
+
+---
+
+## GET /api/failures
+
+Returns failed and errored runs — the failures inbox. Includes a summary of the first failing turn (user input, judge reasoning, error message).
+
+```bash
+curl "http://localhost:8000/api/failures?limit=50" \
+  -H "Authorization: Bearer $BENCH_TOKEN"
+```
+
+**Query params:** `suite_id`, `scenario_id`, `agent_id`, `limit` (default 50)
+
+Each item in the response includes:
+
+| Field | Description |
+|---|---|
+| `run_id` | ID of the failed run |
+| `scenario_id` / `scenario_name` | Scenario that failed |
+| `status` | `failed` or `error` |
+| `first_failed_turn_index` | Index of the first failing turn |
+| `first_failed_user_input` | User message that triggered the failure |
+| `first_failed_reasoning` | Judge reasoning for the failed expectation |
+| `first_failed_error` | Execution error message if applicable |
+| `duration_ms` | Total run duration |

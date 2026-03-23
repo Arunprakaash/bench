@@ -58,7 +58,8 @@
         "api-reference/agents",
         "api-reference/scenarios",
         "api-reference/runs",
-        "api-reference/suites"
+        "api-reference/suites",
+        "api-reference/automation"
       ]
     }
   ],

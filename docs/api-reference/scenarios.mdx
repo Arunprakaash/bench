@@ -32,6 +32,8 @@ curl -X POST http://localhost:8000/api/scenarios \
 
 List all scenarios.
 
+**Query params:** `tag` (filter by tag), `workspace_id`
+
 ---
 
 ## GET /api/scenarios/{id}
@@ -40,9 +42,9 @@ Get a scenario with full turn and expectation detail.
 
 ---
 
-## PATCH /api/scenarios/{id}
+## PUT /api/scenarios/{id}
 
-Update a scenario. Creates a new version.
+Update a scenario. Replaces the full scenario (turns + fields). Creates a new version automatically.
 
 ---
 
@@ -58,6 +60,18 @@ List all versions of a scenario.
 
 ---
 
-## POST /api/scenarios/{id}/restore/{version}
+## POST /api/scenarios/{id}/versions/{version}/restore
 
 Restore a previous version of a scenario.
+
+---
+
+## GET /api/scenarios/{id}/export
+
+Export a scenario as a portable JSON payload (same shape as `POST /api/scenarios`). Useful for migrating scenarios between environments.
+
+---
+
+## POST /api/scenarios/import
+
+Import a previously exported scenario. Accepts the same body as `POST /api/scenarios`.
