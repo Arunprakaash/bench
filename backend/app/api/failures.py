@@ -48,6 +48,7 @@ async def list_failures(
     suite_id: UUID | None = None,
     scenario_id: UUID | None = None,
     agent_id: UUID | None = None,
+    workspace_id: UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     wids = await get_user_workspace_ids(current_user.id, db)
@@ -60,6 +61,8 @@ async def list_failures(
         .order_by(TestRun.created_at.desc())
         .limit(limit)
     )
+    if workspace_id:
+        query = query.where(TestRun.workspace_id == workspace_id)
     if suite_id:
         query = query.where(TestRun.suite_id == suite_id)
     if scenario_id:

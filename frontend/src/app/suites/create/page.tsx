@@ -54,11 +54,11 @@ export default function CreateSuitePage() {
     setLoadingScenarios(true);
     setScenariosError(null);
     void api.scenarios
-      .list()
+      .list(undefined, activeWorkspaceId)
       .then((data) => setScenarios(data))
       .catch((e) => setScenariosError((e as Error).message || "Failed to load scenarios."))
       .finally(() => setLoadingScenarios(false));
-  }, []);
+  }, [activeWorkspaceId]);
 
   const filteredScenarios = useMemo(() => {
     let result = scenarios;

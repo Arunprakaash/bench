@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar, FailureInbox, Search, Trash2 } from "@/lib/icons";
 import { api, type FailureInboxItem } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
@@ -51,6 +52,7 @@ function FailuresPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { activeWorkspaceId } = useWorkspace();
 
   const qFromUrl = getParam(searchParams, "q") ?? "";
   const statusFromUrl = getParam(searchParams, "status") ?? "all";
@@ -96,14 +98,14 @@ function FailuresPageInner() {
     setLoading(true);
     setLoadError(null);
     api.failures
-      .list({ limit: 200 })
+      .list({ limit: 200, workspace_id: activeWorkspaceId })
       .then(setItems)
       .catch((e) => {
         setLoadError((e as Error)?.message || "Failed to load failures.");
         setItems([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeWorkspaceId]);
 
   const filtered = useMemo(() => {
     let result = items;

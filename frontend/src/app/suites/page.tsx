@@ -91,7 +91,7 @@ function SuitesPageInner() {
     try {
       const data = await api.suites.list(activeWorkspaceId);
       setSuites(data);
-      const scenarioData = await api.scenarios.list();
+      const scenarioData = await api.scenarios.list(undefined, activeWorkspaceId);
       setScenarios(scenarioData);
     } catch (e) {
       setLoadError((e as Error).message || "Failed to load suites.");

@@ -233,10 +233,10 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
 
   useEffect(() => {
     api.agents
-      .list()
+      .list(activeWorkspaceId)
       .then(setAgents)
       .catch(() => setAgents([]));
-  }, []);
+  }, [activeWorkspaceId]);
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.id === agentId) || null,

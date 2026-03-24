@@ -2,16 +2,18 @@
 
 import { useEffect } from "react";
 import { useStore } from "@/lib/store";
+import { useWorkspace } from "@/lib/workspace-context";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecentRuns } from "@/components/dashboard/recent-runs";
 
 export default function DashboardPage() {
   const { scenarios, runs, fetchScenarios, fetchRuns } = useStore();
+  const { activeWorkspaceId } = useWorkspace();
 
   useEffect(() => {
-    fetchScenarios();
-    fetchRuns({ limit: 300 });
-  }, [fetchScenarios, fetchRuns]);
+    fetchScenarios({ workspace_id: activeWorkspaceId });
+    fetchRuns({ limit: 300, workspace_id: activeWorkspaceId });
+  }, [fetchScenarios, fetchRuns, activeWorkspaceId]);
 
   return (
     <div className="p-8 space-y-8">

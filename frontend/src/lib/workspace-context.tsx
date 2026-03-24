@@ -39,7 +39,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, []);
+    router.refresh();
+  }, [router]);
 
   const load = useCallback(() => {
     if (pathname === "/onboarding") {

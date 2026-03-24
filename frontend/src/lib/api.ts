@@ -608,6 +608,7 @@ export const api = {
       suite_id?: string;
       scenario_id?: string;
       agent_id?: string;
+      workspace_id?: string | null;
     }) => {
       const searchParams = new URLSearchParams();
       if (params?.limit != null)
@@ -616,6 +617,7 @@ export const api = {
       if (params?.scenario_id)
         searchParams.set("scenario_id", params.scenario_id);
       if (params?.agent_id) searchParams.set("agent_id", params.agent_id);
+      if (params?.workspace_id) searchParams.set("workspace_id", params.workspace_id);
       const qs = searchParams.toString();
       return request<FailureInboxItem[]>(`/api/failures${qs ? `?${qs}` : ""}`);
     },

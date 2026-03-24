@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api, type ScenarioListItem, type Suite } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace-context";
 import { formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ export default function EditSuitePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { setItems } = useBreadcrumbs();
+  const { activeWorkspaceId } = useWorkspace();
 
   const [suite, setSuite] = useState<Suite | null>(null);
   const [name, setName] = useState("");
@@ -42,7 +44,7 @@ export default function EditSuitePage() {
     setScenariosError(null);
     setItems([]);
 
-    Promise.all([api.suites.get(id), api.scenarios.list()])
+    Promise.all([api.suites.get(id), api.scenarios.list(undefined, activeWorkspaceId)])
       .then(([suiteData, scenarioData]) => {
         setSuite(suiteData);
         setName(suiteData.name);
@@ -58,7 +60,7 @@ export default function EditSuitePage() {
         setSuite(null);
       })
       .finally(() => setLoading(false));
-  }, [id, setItems]);
+  }, [id, setItems, activeWorkspaceId]);
 
   const filteredScenarios = useMemo(() => {
     const query = q.trim().toLowerCase();
