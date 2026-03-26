@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, type Scenario, type TestRunListItem } from "@/lib/api";
-import { getStatus, formatDuration, formatDate, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDuration, formatDate, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { ScenarioForm } from "@/components/scenarios/scenario-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Menu } from "@base-ui/react/menu";
 import {
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/table-pagination";
-import { Play, Pencil, Trash2, Download, History } from "@/lib/icons";
+import { ChevronRight, Play, Pencil, Trash2, Download, History } from "@/lib/icons";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 
 const FOCUS_LINK =
@@ -356,10 +357,13 @@ export default function ScenarioDetailPage() {
 
         <TabsContent value="history" className="mt-4 space-y-4">
           {runs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-              <Play className="h-12 w-12 text-primary/30 mb-4" />
-              <p className="text-sm text-muted-foreground">
-                No runs yet. Click &quot;Run Test&quot; to execute this scenario.
+            <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+                <Play className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <h3 className="text-base font-semibold">No runs yet</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+                Click <span className="font-medium">Run Test</span> above to execute this scenario and see results here.
               </p>
             </div>
           ) : (
@@ -404,22 +408,20 @@ export default function ScenarioDetailPage() {
                         <TableHead className="w-[100px] text-center">Turns</TableHead>
                         <TableHead className="w-[100px] text-right">Duration</TableHead>
                         <TableHead className="w-[180px] text-right">Date</TableHead>
+                        <TableHead className="w-8" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paged.map((run) => {
-                        const s = getStatus(run.status);
                         const href = withFrom(`/runs/${run.id}`, `/scenarios/${scenario.id}`);
                         return (
                           <TableRow
                             key={run.id}
-                            className="group"
+                            className="group transition-colors hover:bg-muted/40"
                           >
                             <TableCell>
                               <Link href={href} className={`flex items-center ${FOCUS_LINK}`}>
-                                <Badge variant="secondary" className={s.badgeClass}>
-                                  {run.status}
-                                </Badge>
+                                <StatusBadge status={run.status} />
                               </Link>
                             </TableCell>
                             <TableCell className="text-center tabular-nums text-muted-foreground">
@@ -435,6 +437,11 @@ export default function ScenarioDetailPage() {
                             <TableCell className="text-right text-muted-foreground">
                               <Link href={href} className={`block ${FOCUS_LINK}`}>
                                 {formatRelativeTime(run.created_at)}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="w-8 pr-3">
+                              <Link href={href} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </Link>
                             </TableCell>
                           </TableRow>

@@ -26,22 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, FolderOpen, Play, Plus, Search, Trash2 } from "@/lib/icons";
+import { Calendar, ChevronRight, FolderOpen, Play, Plus, Search, Trash2 } from "@/lib/icons";
+import { PageSkeleton } from "@/components/skeletons/page-skeleton";
+import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
 
 export default function SuitesPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton hasHeaderButton columnWidths={["w-16", "w-24", "w-20", "w-20"]} />}>
       <SuitesPageInner />
     </Suspense>
   );
@@ -202,6 +196,9 @@ function SuitesPageInner() {
     }
   };
 
+  const filtersActive =
+    search.trim() !== "" || dateFilter !== "" || scenarioFilter !== "all" || creatorFilter !== "all";
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -228,9 +225,9 @@ function SuitesPageInner() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
           <Input
-            placeholder="Search suites..."
+            placeholder="Search suites…"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-9"
@@ -245,7 +242,7 @@ function SuitesPageInner() {
               setDateFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+            className="w-full pr-8 bg-muted/50 border-border/60 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
           />
           <button
             type="button"
@@ -273,7 +270,7 @@ function SuitesPageInner() {
             syncUrl({ q: search, scenario: next, page: 1, pageSize });
           }}
         >
-          <SelectTrigger className="w-[240px]">
+          <SelectTrigger className="w-[240px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Scenario" />
             <span className="line-clamp-1">{scenarioFilterLabel}</span>
           </SelectTrigger>
@@ -295,7 +292,7 @@ function SuitesPageInner() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Created by" />
             <span className="line-clamp-1">{creatorFilterLabel}</span>
           </SelectTrigger>
@@ -310,6 +307,8 @@ function SuitesPageInner() {
         </Select>
         <Button
           variant="ghost"
+          disabled={!filtersActive}
+          className={`gap-1.5 ${filtersActive ? "text-primary hover:text-primary/80" : ""}`}
           onClick={() => {
             setSearch("");
             setDateFilter("");
@@ -319,25 +318,34 @@ function SuitesPageInner() {
             syncUrl({ q: "", scenario: "all", page: 1, pageSize });
           }}
         >
+          {filtersActive && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+          )}
           Clear filters
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+        <TableSkeleton columnWidths={["w-16", "w-24", "w-20", "w-20"]} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-          <FolderOpen className="h-12 w-12 text-primary/30 mb-4" />
-          <h3 className="text-lg font-medium">
+        <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <FolderOpen className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <h3 className="text-base font-semibold">
             {suites.length > 0 ? "No suites match your search" : "No suites yet"}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
             {suites.length > 0
-              ? "Try adjusting your search."
-              : "Create a suite to group related test scenarios."}
+              ? "Try adjusting your search or filters."
+              : "Group related scenarios into a suite to run and track them together."}
           </p>
+          {suites.length === 0 && (
+            <Button className="mt-4" onClick={() => router.push("/suites/create")}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Suite
+            </Button>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg">
@@ -387,13 +395,14 @@ function SuitesPageInner() {
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
                 <TableHead className="w-[100px] text-right">Created At</TableHead>
                 <TableHead className="w-[100px] text-right">Updated At</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.map((suite) => (
                 <TableRow
                   key={suite.id}
-                  className="group"
+                  className="group transition-colors hover:bg-muted/40"
                 >
                   <TableCell>
                     <Checkbox
@@ -437,6 +446,11 @@ function SuitesPageInner() {
                   <TableCell className="text-right text-muted-foreground">
                     <Link href={`/suites/${suite.id}`} className={`block ${FOCUS_LINK}`}>
                       {formatRelativeTime(suite.updated_at)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="w-8 pr-3">
+                    <Link href={`/suites/${suite.id}`} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
                   </TableCell>
                 </TableRow>

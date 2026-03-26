@@ -10,6 +10,7 @@ import {
   type JudgeVerdict,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/table-helpers";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -25,17 +26,11 @@ import {
   GitCompare,
   Download,
 } from "@/lib/icons";
+import { RunDetailSkeleton } from "@/components/skeletons/run-detail-skeleton";
 
 const FOCUS_LINK =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm";
 
-const statusConfig: Record<string, { bg: string }> = {
-  passed: { bg: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-  failed: { bg: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-  error: { bg: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-  running: { bg: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-  pending: { bg: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400" },
-};
 
 const eventIcons: Record<string, typeof MessageSquare> = {
   message: MessageSquare,
@@ -113,13 +108,7 @@ export default function RunDetailPage() {
     };
   }, [id, turnParam, setItems]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  if (loading) return <RunDetailSkeleton />;
 
   if (!run) {
     return (
@@ -132,7 +121,6 @@ export default function RunDetailPage() {
   const passedCount = run.turn_results.filter((t) => t.passed).length;
   const totalCount = run.turn_results.length;
   const selectedTurn = run.turn_results[selectedIdx] ?? null;
-  const cfg = statusConfig[run.status] || statusConfig.pending;
   const backHref = from || `/scenarios/${run.scenario_id}`;
   const snapshot =
     run.execution_snapshot && Object.keys(run.execution_snapshot).length > 0
@@ -186,9 +174,7 @@ export default function RunDetailPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-semibold">Test Run</h1>
-                <Badge variant="secondary" className={`text-xs ${cfg.bg}`}>
-                  {run.status.toUpperCase()}
-                </Badge>
+                <StatusBadge status={run.status} uppercase />
               </div>
               <p className="text-xs text-muted-foreground dark:text-foreground/80">
                 {formatDateTime(run.created_at)}
@@ -353,8 +339,10 @@ export default function RunDetailPage() {
               <button
                 key={turn.id}
                 onClick={() => setSelectedIdx(i)}
-                className={`w-full text-left px-4 py-3 border-b transition-colors ${
-                  isSelected ? "bg-primary/10" : "hover:bg-primary/5"
+                className={`w-full text-left px-4 py-3 border-b border-l-2 transition-colors ${
+                  isSelected
+                    ? "bg-primary/10 border-l-primary"
+                    : "hover:bg-muted/50 border-l-transparent"
                 }`}
               >
                 <div className="flex items-center">
@@ -468,8 +456,12 @@ function TurnWaterfall({
               </span>
               <div className="flex-1 relative h-1 bg-muted/40 rounded overflow-hidden">
                 <div
-                  className={`absolute top-0 h-full rounded transition-all ${barColor}`}
-                  style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                  className={`absolute top-0 h-full rounded animate-bar-grow ${barColor}`}
+                  style={{
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    animationDelay: `${i * 60}ms`,
+                  }}
                 />
               </div>
               <span className="text-[11px] tabular-nums text-muted-foreground w-14 text-right shrink-0">
@@ -652,10 +644,10 @@ function VerdictCard({ verdict }: { verdict: JudgeVerdict }) {
 
   return (
     <div
-      className={`rounded-md border text-sm text-foreground ${
+      className={`rounded-md border border-l-[3px] text-sm text-foreground overflow-hidden ${
         passed
-          ? "border-green-200 dark:border-green-900/30 bg-green-50/30 dark:bg-green-950/20"
-          : "border-red-200 dark:border-red-900/30 bg-red-50/30 dark:bg-red-950/20"
+          ? "border-green-200 dark:border-green-900/30 border-l-green-500 bg-green-50/30 dark:bg-green-950/20"
+          : "border-red-200 dark:border-red-900/30 border-l-red-500 bg-red-50/30 dark:bg-red-950/20"
       }`}
     >
       <div

@@ -3,9 +3,9 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getStatus, formatRelativeTime, formatDuration, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatRelativeTime, formatDuration, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, FailureInbox, Search, Trash2 } from "@/lib/icons";
+import { Calendar, ChevronRight, FailureInbox, Search, Trash2 } from "@/lib/icons";
 import { api, type FailureInboxItem } from "@/lib/api";
+import { PageSkeleton } from "@/components/skeletons/page-skeleton";
+import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 import { useWorkspace } from "@/lib/workspace-context";
 
 const FOCUS_LINK =
@@ -34,15 +36,7 @@ const FOCUS_LINK =
 
 export default function FailuresPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton columnWidths={["w-20", "w-40", "w-12", "w-16", "w-24", "w-28"]} />}>
       <FailuresPageInner />
     </Suspense>
   );
@@ -169,6 +163,9 @@ function FailuresPageInner() {
     }
   };
 
+  const filtersActive =
+    search.trim() !== "" || statusFilter !== "all" || dateFilter !== "" || creatorFilter !== "all";
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -189,9 +186,9 @@ function FailuresPageInner() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
           <Input
-            placeholder="Search by scenario..."
+            placeholder="Search by scenario…"
             value={search}
             onChange={(e) => {
               const v = e.target.value;
@@ -211,7 +208,7 @@ function FailuresPageInner() {
             syncUrl({ q: search, status: next, page: 1, pageSize });
           }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Status" />
             <span className="line-clamp-1">{statusFilterLabel}</span>
           </SelectTrigger>
@@ -230,7 +227,7 @@ function FailuresPageInner() {
               setDateFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+            className="w-full pr-8 bg-muted/50 border-border/60 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
           />
           <button
             type="button"
@@ -256,7 +253,7 @@ function FailuresPageInner() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Created by" />
             <span className="line-clamp-1">{creatorFilterLabel}</span>
           </SelectTrigger>
@@ -271,6 +268,8 @@ function FailuresPageInner() {
         </Select>
         <Button
           variant="ghost"
+          disabled={!filtersActive}
+          className={`gap-1.5 ${filtersActive ? "text-primary hover:text-primary/80" : ""}`}
           onClick={() => {
             setSearch("");
             setStatusFilter("all");
@@ -279,23 +278,33 @@ function FailuresPageInner() {
             setPage(1);
           }}
         >
+          {filtersActive && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+          )}
           Clear filters
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+        <TableSkeleton columnWidths={["w-20", "w-40", "w-12", "w-16", "w-24", "w-28"]} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-          <FailureInbox className="h-12 w-12 text-primary/30 mb-4" />
-          <h3 className="text-lg font-medium">
+        <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <FailureInbox className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <h3 className="text-base font-semibold">
             {items.length > 0 ? "No failures match your filters" : "No failures yet"}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {items.length > 0 ? "Try adjusting your search or status filter." : "Run a suite or scenario to see failures here."}
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+            {items.length > 0
+              ? "Try adjusting your search or status filter."
+              : "All runs have passed, or no runs have been executed yet."}
           </p>
+          {items.length === 0 && (
+            <Link href="/runs" className="mt-4">
+              <Button variant="outline">View Runs</Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg">
@@ -340,11 +349,11 @@ function FailuresPageInner() {
                 <TableHead className="w-[110px] text-right">Duration</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
                 <TableHead className="w-[100px] text-right">Date & Time</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.map((it) => {
-                const style = getStatus(it.status);
                 const href = withFrom(
                   `/runs/${it.run_id}${it.first_failed_turn_index != null ? `?turn=${it.first_failed_turn_index}` : ""}`,
                   "/failures",
@@ -357,7 +366,7 @@ function FailuresPageInner() {
                   it.first_failed_user_input ||
                   "";
                 return (
-                  <TableRow key={it.run_id} className="group">
+                  <TableRow key={it.run_id} className="group transition-colors hover:bg-muted/40">
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.includes(it.run_id)}
@@ -371,9 +380,7 @@ function FailuresPageInner() {
                     </TableCell>
                     <TableCell>
                       <Link href={href} className={`flex items-center ${FOCUS_LINK}`}>
-                        <Badge variant="secondary" className={style.badgeClass}>
-                          {it.status}
-                        </Badge>
+                        <StatusBadge status={it.status} />
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -404,6 +411,11 @@ function FailuresPageInner() {
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
                         {formatRelativeTime(it.created_at)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="w-8 pr-3">
+                      <Link href={href} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     </TableCell>
                   </TableRow>

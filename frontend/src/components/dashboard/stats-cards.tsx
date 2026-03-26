@@ -149,14 +149,14 @@ function Bars({
 }) {
   const max = Math.max(1, ...values);
   return (
-    <div className="flex items-end gap-1.5 h-14">
+    <div className="flex items-end gap-1 h-14">
       {values.map((v, i) => {
         const h = 8 + Math.round((v / max) * 44);
         return (
           <div
             key={i}
             className={cn(
-              "w-1.5 rounded-full bg-muted/25 dark:bg-white/8",
+              "w-2 rounded-full bg-muted/30 dark:bg-white/10",
               colorClass,
             )}
             style={{ height: `${h}px` }}
@@ -178,7 +178,7 @@ function StackedBars({
   const max = Math.max(1, ...passed.map((p, i) => p + (failed[i] || 0)));
 
   return (
-    <div className="flex items-end gap-1.5 h-14" aria-hidden="true">
+    <div className="flex items-end gap-1 h-14" aria-hidden="true">
       {passed.map((p, i) => {
         const f = failed[i] || 0;
         const total = p + f;
@@ -188,8 +188,8 @@ function StackedBars({
         const failedH = Math.max(0, h - passedH);
 
         return (
-          <div key={i} className="w-1.5 h-full flex items-end">
-            <div className="w-1.5 flex flex-col justify-end gap-0 rounded-full overflow-hidden bg-muted/35 dark:bg-white/10">
+          <div key={i} className="w-2 h-full flex items-end">
+            <div className="w-2 flex flex-col justify-end gap-0 rounded-full overflow-hidden bg-muted/35 dark:bg-white/10">
               {failedH > 0 && (
                 <div
                   style={{ height: `${failedH}px` }}
@@ -292,13 +292,15 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
+      {stats.map((stat, i) => (
         <Card
           key={stat.title}
           className={cn(
             "relative overflow-hidden rounded-2xl border border-border/70 bg-card backdrop-blur-sm",
             "shadow-[0_1px_0_rgba(0,0,0,0.04),0_18px_40px_rgba(0,0,0,0.06)]",
+            "animate-slide-up-fade",
           )}
+          style={{ animationDelay: `${i * 70}ms` }}
         >
           {/* Single-tone light tint (no gradient) */}
           <div
@@ -365,7 +367,7 @@ export function StatsCards({ scenarios, runs }: StatsCardsProps) {
           </div>
 
           <div
-            className="pointer-events-none absolute right-5 bottom-4 z-10 opacity-60"
+            className="pointer-events-none absolute right-5 bottom-4 z-10 opacity-80"
             aria-hidden="true"
           >
             {stat.chart.type === "stacked" ? (

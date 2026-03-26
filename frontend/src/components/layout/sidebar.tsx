@@ -26,6 +26,8 @@ import {
   Team,
   User,
   Bell,
+  Sun,
+  Moon,
 } from "@/lib/icons";
 import { formatRelativeTime } from "@/lib/table-helpers";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
@@ -129,106 +131,94 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         collapsed ? "w-16" : "w-64",
       )}
     >
-      <nav className="flex-1 space-y-1 px-3 py-3">
-        {navItems.map((item) => {
-          const isActive =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          const linkClass = cn(
-            "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-            collapsed ? "justify-center gap-0" : "gap-3",
-            isActive
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          );
-
-          if (collapsed) {
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger
-                  render={
-                    <Link
-                      href={item.href}
-                      aria-label={item.label}
-                      className={linkClass}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                    </Link>
-                  }
-                />
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
+      <nav className="flex-1 flex flex-col justify-center py-3 overflow-y-auto">
+        <div className="space-y-0.5 px-2">
+          {navItems.map((item) => {
+            const isActive =
+              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const linkClass = cn(
+              "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
+              collapsed ? "justify-center gap-0" : "gap-3",
+              isActive
+                ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
             );
-          }
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-label={item.label}
-              className={linkClass}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+            if (collapsed) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger
+                    render={
+                      <Link href={item.href} aria-label={item.label} className={linkClass}>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                      </Link>
+                    }
+                  />
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return (
+              <Link key={item.href} href={item.href} aria-label={item.label} className={linkClass}>
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
-      <div
-        className={cn(
-          "flex border-t p-3",
-          collapsed ? "flex-col items-center gap-2" : "flex-col gap-1",
-        )}
-      >
+      <div className="flex border-t flex-col gap-0.5 px-2 py-3">
         <Dialog open={alertsOpen} onOpenChange={setAlertsOpen} modal={false}>
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 relative"
                     aria-label="Notifications"
                     aria-expanded={alertsOpen}
                     aria-haspopup="dialog"
-                    onClick={() => {
-                      setAlertsOpen(true);
-                      void loadAlerts();
-                    }}
+                    onClick={() => { setAlertsOpen(true); void loadAlerts(); }}
+                    className={cn(
+                      "relative flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
+                      alertsOpen
+                        ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+                    )}
                   >
-                    <Bell className="h-5 w-5" />
+                    <Bell className="h-4 w-4 shrink-0" />
                     {alerts.length > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center">
                         {unreadCountLabel}
                       </span>
                     )}
-                  </Button>
+                  </button>
                 }
               />
               <TooltipContent side="right">Notifications</TooltipContent>
             </Tooltip>
           ) : (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 relative"
               aria-expanded={alertsOpen}
               aria-haspopup="dialog"
-              onClick={() => {
-                setAlertsOpen(true);
-                void loadAlerts();
-              }}
+              onClick={() => { setAlertsOpen(true); void loadAlerts(); }}
+              className={cn(
+                "relative flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors gap-3",
+                alertsOpen
+                  ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+              )}
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4 shrink-0" />
               Notifications
               {alerts.length > 0 && (
                 <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] leading-5 text-white text-center">
                   {unreadCountLabel}
                 </span>
               )}
-            </Button>
+            </button>
           )}
 
           <DialogContent
@@ -301,35 +291,41 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
                     aria-label="Settings"
                     aria-expanded={settingsOpen}
                     aria-haspopup="dialog"
                     onClick={() => setSettingsOpen(true)}
+                    className={cn(
+                      "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
+                      settingsOpen
+                        ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+                    )}
                   >
-                    <Settings className="h-4 w-4" />
-                  </Button>
+                    <Settings className="h-4 w-4 shrink-0" />
+                  </button>
                 }
               />
               <TooltipContent side="right">Settings</TooltipContent>
             </Tooltip>
           ) : (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2"
               aria-expanded={settingsOpen}
               aria-haspopup="dialog"
               onClick={() => setSettingsOpen(true)}
+              className={cn(
+                "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors gap-3",
+                settingsOpen
+                  ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+              )}
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 shrink-0" />
               Settings
-            </Button>
+            </button>
           )}
 
           <DialogContent
@@ -354,8 +350,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                   size="sm"
                   onClick={toggleTheme}
                   aria-label={dark ? "Disable dark mode" : "Enable dark mode"}
+                  className="w-9 h-8 p-0"
                 >
-                  {dark ? "On" : "Off"}
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
               </div>
 
@@ -377,64 +374,68 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           <Tooltip>
             <TooltipTrigger
               render={
-                <Link href="/workspaces">
-                  <Button
-                    type="button"
-                    variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    aria-label="Workspaces"
-                  >
-                    <Team className="h-4 w-4" />
-                  </Button>
+                <Link
+                  href="/workspaces"
+                  aria-label="Workspaces"
+                  className={cn(
+                    "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
+                    pathname.startsWith("/workspaces")
+                      ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+                  )}
+                >
+                  <Team className="h-4 w-4 shrink-0" />
                 </Link>
               }
             />
             <TooltipContent side="right">Workspaces</TooltipContent>
           </Tooltip>
         ) : (
-          <Link href="/workspaces" className="w-full">
-            <Button
-              type="button"
-              variant={pathname.startsWith("/workspaces") ? "secondary" : "ghost"}
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <Team className="h-4 w-4" />
-              Workspaces
-            </Button>
+          <Link
+            href="/workspaces"
+            className={cn(
+              "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors gap-3",
+              pathname.startsWith("/workspaces")
+                ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+            )}
+          >
+            <Team className="h-4 w-4 shrink-0" />
+            Workspaces
           </Link>
         )}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger
               render={
-                <Link href="/profile">
-                  <Button
-                    type="button"
-                    variant={pathname.startsWith("/profile") ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    aria-label="Profile"
-                  >
-                    {profileVisual}
-                  </Button>
+                <Link
+                  href="/profile"
+                  aria-label="Profile"
+                  className={cn(
+                    "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
+                    pathname.startsWith("/profile")
+                      ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+                  )}
+                >
+                  {profileVisual}
                 </Link>
               }
             />
             <TooltipContent side="right">Profile</TooltipContent>
           </Tooltip>
         ) : (
-          <Link href="/profile" className="w-full">
-            <Button
-              type="button"
-              variant={pathname.startsWith("/profile") ? "secondary" : "ghost"}
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              {profileVisual}
-              Profile
-            </Button>
+          <Link
+            href="/profile"
+            className={cn(
+              "flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors gap-3",
+              pathname.startsWith("/profile")
+                ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+            )}
+          >
+            {profileVisual}
+            Profile
           </Link>
         )}
       </div>

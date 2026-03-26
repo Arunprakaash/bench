@@ -5,10 +5,10 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { api, type Suite, type TestRunListItem } from "@/lib/api";
-import { getStatus, formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -38,6 +38,7 @@ import {
   Search,
   Trash2,
   Calendar,
+  ChevronRight,
 } from "@/lib/icons";
 import { useBreadcrumbs } from "@/components/layout/breadcrumb-context";
 
@@ -357,7 +358,6 @@ export default function SuiteDetailPage() {
                 {suite.scenarios.map((scenario) => {
                   const info = getLiveOrHistoric(scenario.id);
                   const status = getScenarioStatus(info);
-                  const style = getStatus(status || "pending");
                   const href = `/scenarios/${scenario.id}`;
                   return (
                     <TableRow key={scenario.id} className="group">
@@ -366,9 +366,7 @@ export default function SuiteDetailPage() {
                           href={href}
                           className={`inline-flex items-center ${FOCUS_LINK}`}
                         >
-                          <Badge variant="secondary" className={style.badgeClass}>
-                            {status || "pending"}
-                          </Badge>
+                          <StatusBadge status={status || "pending"} />
                         </Link>
                       </TableCell>
                       <TableCell>
@@ -429,10 +427,13 @@ export default function SuiteDetailPage() {
 
         <TabsContent value="results" className="mt-4">
           {latestBatch.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-              <Play className="h-12 w-12 text-primary/30 mb-4" />
-              <p className="text-sm text-muted-foreground">
-                No results yet. Click &quot;Run All&quot; to execute every scenario.
+            <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+                <Play className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <h3 className="text-base font-semibold">No results yet</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+                Click <span className="font-medium">Run All</span> above to execute every scenario in this suite.
               </p>
             </div>
           ) : (
@@ -445,8 +446,14 @@ export default function SuiteDetailPage() {
 
         <TabsContent value="history" className="mt-4">
           {runs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-              <p className="text-sm text-muted-foreground">No runs yet.</p>
+            <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+                <Calendar className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <h3 className="text-base font-semibold">No run history yet</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+                Past suite runs will appear here after you execute the suite.
+              </p>
             </div>
           ) : (
             <RunsTable runs={runs} showFilters showPagination />
@@ -742,22 +749,20 @@ function RunsTable({
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
                 <TableHead className="w-[100px] text-right">Date & Time</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.map((run) => {
-                const s = getStatus(run.status);
                 const href = withFrom(`/runs/${run.id}`, `/suites/${params.id}`);
                 return (
                   <TableRow
                     key={run.id}
-                    className="group"
+                    className="group transition-colors hover:bg-muted/40"
                   >
                     <TableCell>
                       <Link href={href} className={`flex items-center ${FOCUS_LINK}`}>
-                        <Badge variant="secondary" className={s.badgeClass}>
-                          {run.status}
-                        </Badge>
+                        <StatusBadge status={run.status} />
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -783,6 +788,11 @@ function RunsTable({
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
                         {formatRelativeTime(run.created_at)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="w-8 pr-3">
+                      <Link href={href} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     </TableCell>
                   </TableRow>

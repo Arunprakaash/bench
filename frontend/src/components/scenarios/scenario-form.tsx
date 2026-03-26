@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -345,87 +345,164 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
           </Button>
         </div>
       </div>
+
+      {/* ── Section 1: Details ── */}
       <Card>
-        <CardHeader>
-          <CardTitle>Scenario Details</CardTitle>
+        <CardHeader className="border-b pb-4">
+          <CardTitle>Details</CardTitle>
+          <CardDescription>Name, description, agent assignment, and tags</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Agent (required)</Label>
-            {agents.length === 0 ? (
-              <p className="text-sm text-amber-600 dark:text-amber-500">
-                No agents yet.{" "}
-                <Link href="/agents" className="underline hover:no-underline">
-                  Create an agent
-                </Link>{" "}
-                first before creating a scenario.
-              </p>
-            ) : (
-              <>
-                <Select
-                  value={agentId}
-                  onValueChange={(v: string | null) => setAgentId(v ?? "")}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select an agent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {agents.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!agentId && (
-                  <p className="text-xs text-amber-600 dark:text-amber-500">
-                    You must select an agent to create or update a scenario.
-                  </p>
-                )}
-                {selectedAgent && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedAgent.module}.{selectedAgent.agent_class}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+        <CardContent className="pt-5">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Agent <span className="text-destructive">*</span></Label>
+              {agents.length === 0 ? (
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  No agents yet.{" "}
+                  <Link href="/agents" className="underline hover:no-underline">
+                    Create an agent
+                  </Link>{" "}
+                  first before creating a scenario.
+                </p>
+              ) : (
+                <>
+                  <Select
+                    value={agentId}
+                    onValueChange={(v: string | null) => setAgentId(v ?? "")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an agent…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agents.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!agentId && (
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      You must select an agent to create or update a scenario.
+                    </p>
+                  )}
+                  {selectedAgent && (
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {selectedAgent.module}.{selectedAgent.agent_class}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Booking Flow - Happy Path"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Booking Flow — Happy Path"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this scenario test?"
-              rows={2}
-            />
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="description">
+                Description <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What does this scenario test?"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Tags <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <div className="flex gap-2">
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+                  placeholder="Add a tag…"
+                  className="w-48"
+                />
+                <Button variant="outline" size="sm" onClick={addTag}>
+                  Add
+                </Button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex gap-1 mt-2 flex-wrap">
+                  {tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => setTags(tags.filter((t) => t !== tag))}
+                    >
+                      {tag} &times;
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Section 2: Model Configuration ── */}
+      <Card>
+        <CardHeader className="border-b pb-4">
+          <CardTitle>Model Configuration</CardTitle>
+          <CardDescription>LLM and judge models, plus optional per-scenario agent overrides</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="llm_model">LLM model</Label>
+              <Select value={llmModel} onValueChange={(v: string | null) => v && setLlmModel(v)}>
+                <SelectTrigger id="llm_model">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
+                  <SelectItem value="gpt-4o">gpt-4o</SelectItem>
+                  <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
+                  <SelectItem value="gpt-4.1">gpt-4.1</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="judge_model">Judge model</Label>
+              <Select value={judgeModel} onValueChange={(v: string | null) => v && setJudgeModel(v)}>
+                <SelectTrigger id="judge_model">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
+                  <SelectItem value="gpt-4o">gpt-4o</SelectItem>
+                  <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
+                  <SelectItem value="gpt-4.1">gpt-4.1</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {agentLoad?.arg_schema && agentLoad.arg_schema.length > 0 ? (
             <div className="space-y-3">
               <div>
-                <Label>Scenario overrides</Label>
+                <Label className="text-sm font-medium">Scenario overrides</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Optional. Override constructor args for this scenario only.
+                  Override constructor args for this scenario only.
                 </p>
               </div>
-              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/5 p-4">
+              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
                 {agentLoad.arg_schema.map((field) => (
                   <div key={field.name} className="space-y-2">
-                    <Label htmlFor={`arg-${field.name}`} className="text-sm">
+                    <Label htmlFor={`arg-${field.name}`} className="text-sm font-mono">
                       {field.name}
-                      {field.required && " *"}
+                      {field.required && <span className="text-destructive ml-0.5">*</span>}
                     </Label>
                     {field.type === "string" && (field.name === "interview_prompt" || field.name === "interview_context") ? (
                       <Textarea
@@ -477,14 +554,14 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
           ) : agentLoad ? (
             <div className="space-y-3">
               <div>
-                <Label>Scenario overrides</Label>
+                <Label className="text-sm font-medium">Scenario overrides</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Optional. Override constructor args for this scenario only.
+                  Override constructor args for this scenario only.
                 </p>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 rounded-lg border border-border/60 bg-muted/5 p-4">
+              <div className="grid gap-4 sm:grid-cols-2 rounded-lg border border-border/60 bg-muted/20 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="candidate_name">candidate_name</Label>
+                  <Label htmlFor="candidate_name" className="font-mono text-sm">candidate_name</Label>
                   <Input
                     id="candidate_name"
                     value={String(agentArgs["candidate_name"] ?? "")}
@@ -494,15 +571,15 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
                     placeholder="e.g. Alice"
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="interview_prompt">interview_prompt</Label>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="interview_prompt" className="font-mono text-sm">interview_prompt</Label>
                   <Textarea
                     id="interview_prompt"
                     value={String(agentArgs["interview_prompt"] ?? "")}
                     onChange={(e) =>
                       setAgentArgs((prev) => ({ ...prev, interview_prompt: e.target.value || undefined }))
                     }
-                    placeholder="## Questions\n1. Tell me about yourself..."
+                    placeholder="## Questions&#10;1. Tell me about yourself…"
                     rows={4}
                     className="font-mono text-xs"
                   />
@@ -510,95 +587,35 @@ export function ScenarioForm({ initial }: ScenarioFormProps) {
               </div>
             </div>
           ) : null}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="llm_model">LLM model</Label>
-              <Select value={llmModel} onValueChange={(v: string | null) => v && setLlmModel(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
-                  <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                  <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
-                  <SelectItem value="gpt-4.1">gpt-4.1</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="judge_model">Judge model</Label>
-              <Select value={judgeModel} onValueChange={(v: string | null) => v && setJudgeModel(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
-                  <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                  <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
-                  <SelectItem value="gpt-4.1">gpt-4.1</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                placeholder="Add a tag..."
-                className="w-48"
-              />
-              <Button variant="outline" size="sm" onClick={addTag}>
-                Add
-              </Button>
-            </div>
-            {tags.length > 0 && (
-              <div className="flex gap-1 mt-2 flex-wrap">
-                {tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="cursor-pointer"
-                    onClick={() => setTags(tags.filter((t) => t !== tag))}
-                  >
-                    {tag} &times;
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Conversation turns</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Define what the user says and what you expect from the agent each turn.
-            </p>
-          </div>
-          <Button variant="outline" onClick={addTurn} className="shrink-0">
-            <Plus className="mr-2 h-4 w-4" />
-            Add turn
-          </Button>
-        </div>
-
-        {turns.map((turn, idx) => (
-          <TurnEditor
-            key={idx}
-            turn={turn}
-            index={idx}
-            onChange={updateTurn}
-            onRemove={removeTurn}
-          />
-        ))}
-      </div>
-
+      {/* ── Section 3: Conversation Turns ── */}
+      <Card>
+        <CardHeader className="border-b pb-4">
+          <CardTitle>Conversation Turns</CardTitle>
+          <CardDescription>
+            Define what the user says and what you expect from the agent each turn.
+          </CardDescription>
+          <CardAction>
+            <Button variant="outline" onClick={addTurn}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Turn
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          {turns.map((turn, idx) => (
+            <TurnEditor
+              key={idx}
+              turn={turn}
+              index={idx}
+              onChange={updateTurn}
+              onRemove={removeTurn}
+            />
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

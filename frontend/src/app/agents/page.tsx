@@ -21,6 +21,8 @@ import {
 import { TablePagination } from "@/components/table-pagination";
 import { Bot, Calendar, Plus, Search } from "@/lib/icons";
 import { Trash2 } from "@/lib/icons";
+import { PageSkeleton } from "@/components/skeletons/page-skeleton";
+import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 import {
   Select,
   SelectContent,
@@ -34,15 +36,7 @@ const FOCUS_LINK =
 
 export default function AgentsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton hasHeaderButton columnWidths={["w-24", "w-20", "w-20"]} />}>
       <AgentsPageInner />
     </Suspense>
   );
@@ -276,18 +270,28 @@ function AgentsPageInner() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+        <TableSkeleton columnWidths={["w-24", "w-20", "w-20"]} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-          <Bot className="h-12 w-12 text-primary/30 mb-4" />
-          <h3 className="text-lg font-medium">
+        <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <Bot className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <h3 className="text-base font-semibold">
             {items.length > 0 ? "No agents match your search" : "No agents yet"}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {items.length > 0 ? "Try adjusting your search query." : "Create an agent to power scenarios and Chat Builder."}
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+            {items.length > 0
+              ? "Try adjusting your search query."
+              : "Register an agent entrypoint to power scenarios and the Chat Builder."}
           </p>
+          {items.length === 0 && (
+            <Link href="/agents/new" className="mt-4">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Agent
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg">

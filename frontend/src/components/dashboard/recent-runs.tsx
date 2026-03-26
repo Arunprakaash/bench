@@ -3,13 +3,12 @@
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
-  getStatus,
   formatDuration,
   formatRelativeTime,
   paginate,
 } from "@/lib/table-helpers";
 import { withFrom } from "@/lib/nav";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/table-pagination";
-import { Calendar, Search } from "@/lib/icons";
+import { Calendar, ChevronRight, Search, Play } from "@/lib/icons";
 import type { TestRunListItem } from "@/lib/api";
 
 const PAGE_SIZE = 10;
@@ -187,12 +186,27 @@ export function RecentRuns({ runs }: RecentRunsProps) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            {runs.length > 0
-              ? "No runs match your filters."
-              : "No test runs yet. Create a scenario and run it."}
-          </p>
+        <div className="flex flex-col items-center justify-center py-16 border rounded-lg gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Play className="h-5 w-5" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {runs.length > 0 ? "No runs match your filters" : "No test runs yet"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {runs.length > 0
+                ? "Try clearing filters to see all runs."
+                : "Create a scenario and trigger a run to get started."}
+            </p>
+          </div>
+          {runs.length === 0 && (
+            <Link href="/scenarios/new">
+              <Button size="sm" variant="outline">
+                Create a scenario
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg">
@@ -211,22 +225,24 @@ export function RecentRuns({ runs }: RecentRunsProps) {
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
                 <TableHead className="w-[190px] text-right">Date & Time</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paged.map((run) => {
-                const s = getStatus(run.status);
+              {paged.map((run, i) => {
                 const href = withFrom(`/runs/${run.id}`, "/");
                 return (
-                  <TableRow key={run.id} className="group">
+                  <TableRow
+                    key={run.id}
+                    className="group animate-fade-in-row transition-colors hover:bg-muted/40"
+                    style={{ animationDelay: `${i * 30}ms` }}
+                  >
                     <TableCell>
                       <Link
                         href={href}
                         className={`flex items-center ${FOCUS_LINK}`}
                       >
-                        <Badge variant="secondary" className={s.badgeClass}>
-                          {run.status}
-                        </Badge>
+                        <StatusBadge status={run.status} />
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -255,6 +271,11 @@ export function RecentRuns({ runs }: RecentRunsProps) {
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className={`block ${FOCUS_LINK}`}>
                         {formatRelativeTime(run.created_at)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="w-8 pr-3">
+                      <Link href={href} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     </TableCell>
                   </TableRow>

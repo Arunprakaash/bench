@@ -9,6 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+function BenchLogo() {
+  return (
+    <div className="flex items-center justify-center gap-2.5 mb-8">
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="2.7" fill="currentColor" />
+          <circle cx="17.5" cy="6.5" r="2.7" fill="currentColor" />
+          <circle cx="12" cy="17.5" r="2.7" fill="currentColor" />
+          <path d="M8.5 8.2L10.5 12.2M15.5 8.2L13.5 12.2M9.8 15.4H14.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </span>
+      <span className="text-xl font-semibold tracking-tight">Bench</span>
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,21 +70,38 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6">
-        <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8 shadow-sm">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {mode === "login" ? "Sign in" : "Sign up"}
+    <div
+      className="min-h-screen bg-background relative flex items-center justify-center px-4 py-12 sm:px-6 overflow-hidden"
+      style={{
+        backgroundImage: "radial-gradient(circle, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px)",
+        backgroundSize: "28px 28px",
+      }}
+    >
+      {/* radial glow behind card */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        aria-hidden="true"
+        style={{
+          background: "radial-gradient(ellipse 60% 50% at 50% 50%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 70%)",
+        }}
+      />
+
+      <div className="relative z-10 w-full max-w-md animate-slide-up-fade">
+        <div className="rounded-2xl border border-border/70 bg-card/95 backdrop-blur-sm p-8 shadow-[0_4px_6px_rgba(0,0,0,0.04),0_24px_60px_rgba(0,0,0,0.10)]">
+          <BenchLogo />
+
+          <div className="mb-6">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {mode === "login" ? "Sign in to Bench" : "Create your account"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {mode === "login" ? "Use email and password." : "Create your account."}
+              {mode === "login" ? "Enter your email and password." : "Get started — it only takes a moment."}
             </p>
           </div>
 
           {error && (
             <div
-              className="rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              className="mb-4 rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
               role="alert"
             >
               {error}
@@ -115,7 +148,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     className="text-xs font-medium text-primary hover:underline"
-                    onClick={() => setForgotHint("Password reset isn’t available in this environment yet.")}
+                    onClick={() => setForgotHint("Password reset isn't available in this environment yet.")}
                   >
                     Forgot password
                   </button>
@@ -154,7 +187,7 @@ export default function AuthPage() {
             </Button>
           </form>
 
-          <div className="text-sm text-muted-foreground pt-2">
+          <div className="mt-5 text-center text-sm text-muted-foreground border-t border-border/60 pt-5">
             {mode === "login" ? (
               <>
                 No account?{" "}

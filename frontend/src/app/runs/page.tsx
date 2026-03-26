@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useWorkspace } from "@/lib/workspace-context";
-import { getStatus, formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
+import { formatDuration, formatRelativeTime, paginate, DEFAULT_PAGE_SIZE } from "@/lib/table-helpers";
 import { getIntParam, getParam, setOrDelete, withFrom } from "@/lib/nav";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -27,20 +27,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/table-pagination";
-import { Calendar, Play, Search, Trash2 } from "@/lib/icons";
+import { Calendar, ChevronRight, Play, Search, Trash2 } from "@/lib/icons";
 import { api } from "@/lib/api";
+import { PageSkeleton } from "@/components/skeletons/page-skeleton";
+import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 
 export default function RunsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton columnWidths={["w-20", "w-16", "w-20", "w-28", "w-28", "w-28"]} />}>
       <RunsPageInner />
     </Suspense>
   );
@@ -162,6 +156,9 @@ function RunsPageInner() {
     }
   };
 
+  const filtersActive =
+    search.trim() !== "" || statusFilter !== "all" || dateFilter !== "" || creatorFilter !== "all";
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -173,9 +170,9 @@ function RunsPageInner() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
           <Input
-            placeholder="Search by scenario..."
+            placeholder="Search by scenario…"
             value={search}
             onChange={(e) => {
               const v = e.target.value;
@@ -195,7 +192,7 @@ function RunsPageInner() {
             syncUrl({ status: next, q: search, page: 1, pageSize });
           }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Status" />
             <span className="line-clamp-1">{statusFilterLabel}</span>
           </SelectTrigger>
@@ -215,7 +212,7 @@ function RunsPageInner() {
               setDateFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full pr-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+            className="w-full pr-8 bg-muted/50 border-border/60 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
           />
           <button
             type="button"
@@ -241,7 +238,7 @@ function RunsPageInner() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] bg-muted/50 border-border/60">
             <SelectValue className="sr-only" placeholder="Created by" />
             <span className="line-clamp-1">{creatorFilterLabel}</span>
           </SelectTrigger>
@@ -256,6 +253,8 @@ function RunsPageInner() {
         </Select>
         <Button
           variant="ghost"
+          disabled={!filtersActive}
+          className={`gap-1.5 ${filtersActive ? "text-primary hover:text-primary/80" : ""}`}
           onClick={() => {
             setSearch("");
             setStatusFilter("all");
@@ -264,6 +263,9 @@ function RunsPageInner() {
             setPage(1);
           }}
         >
+          {filtersActive && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+          )}
           Clear filters
         </Button>
       </div>
@@ -274,16 +276,25 @@ function RunsPageInner() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
+        <TableSkeleton columnWidths={["w-20", "w-16", "w-20", "w-28", "w-28", "w-28"]} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border rounded-lg">
-          <Play className="h-12 w-12 text-primary/30 mb-4" />
-          <h3 className="text-lg font-medium">No test runs found</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {runs.length > 0 ? "Try adjusting your filters." : "Run a scenario to see results here."}
+        <div className="flex flex-col items-center justify-center py-20 border rounded-lg text-center px-4">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+            <Play className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <h3 className="text-base font-semibold">
+            {runs.length > 0 ? "No runs match your filters" : "No test runs yet"}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+            {runs.length > 0
+              ? "Try adjusting your search, status, or date filters."
+              : "Run a scenario to see results here."}
           </p>
+          {runs.length === 0 && (
+            <Link href="/scenarios" className="mt-4">
+              <Button variant="outline">View Scenarios</Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="border rounded-lg">
@@ -327,16 +338,16 @@ function RunsPageInner() {
                 <TableHead className="w-[100px] text-right">Duration</TableHead>
                 <TableHead className="w-[170px] text-right">Created By</TableHead>
                 <TableHead className="w-[100px] text-right">Date & Time</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.map((run) => {
-                const s = getStatus(run.status);
                 const href = withFrom(`/runs/${run.id}`, "/runs");
                 return (
                   <TableRow
                     key={run.id}
-                    className="group"
+                    className="group transition-colors hover:bg-muted/40"
                   >
                     <TableCell>
                       <Checkbox
@@ -354,9 +365,7 @@ function RunsPageInner() {
                         href={href}
                         className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
                       >
-                        <Badge variant="secondary" className={s.badgeClass}>
-                          {run.status}
-                        </Badge>
+                        <StatusBadge status={run.status} />
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -385,6 +394,11 @@ function RunsPageInner() {
                     <TableCell className="text-right text-muted-foreground">
                       <Link href={href} className="block">
                         {formatRelativeTime(run.created_at)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="w-8 pr-3">
+                      <Link href={href} tabIndex={-1} aria-hidden="true" className="flex items-center justify-center">
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     </TableCell>
                   </TableRow>
