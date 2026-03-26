@@ -5,7 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api, type AuthMe } from "@/lib/api";
 import {
   Dialog,
@@ -28,6 +32,7 @@ import {
   Bell,
   Sun,
   Moon,
+  BenchAgentSparkle,
 } from "@/lib/icons";
 import { formatRelativeTime } from "@/lib/table-helpers";
 import { clearAuthToken, getAuthToken } from "@/lib/auth";
@@ -43,7 +48,15 @@ const navItems = [
   { href: "/automation", label: "Automation", icon: RadiusSetting },
 ];
 
-export function Sidebar({ collapsed }: { collapsed: boolean }) {
+export function Sidebar({
+  collapsed,
+  benchOpen,
+  onBenchToggle,
+}: {
+  collapsed: boolean;
+  benchOpen: boolean;
+  onBenchToggle: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   // Keep initial render deterministic to avoid hydration mismatch.
@@ -51,7 +64,15 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const [authUser, setAuthUser] = useState<AuthMe | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [alerts, setAlerts] = useState<Array<{ id: string; title: string; detail: string | null; run_id: string; created_at: string }>>([]);
+  const [alerts, setAlerts] = useState<
+    Array<{
+      id: string;
+      title: string;
+      detail: string | null;
+      run_id: string;
+      created_at: string;
+    }>
+  >([]);
 
   useEffect(() => {
     // Theme class is synced from AppShell on load; keep toggle UI in sync.
@@ -106,7 +127,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     localStorage.setItem("theme", next ? "dark" : "light");
   };
 
-  const profileInitial = (authUser?.display_name || authUser?.email || "?")[0].toUpperCase();
+  const profileInitial = (authUser?.display_name ||
+    authUser?.email ||
+    "?")[0].toUpperCase();
   const profileVisual = authUser?.avatar_url ? (
     <span
       aria-label={authUser.display_name || authUser.email || "Profile"}
@@ -135,7 +158,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         <div className="space-y-0.5 px-2">
           {navItems.map((item) => {
             const isActive =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
             const linkClass = cn(
               "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
               collapsed ? "justify-center gap-0" : "gap-3",
@@ -149,7 +174,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                 <Tooltip key={item.href}>
                   <TooltipTrigger
                     render={
-                      <Link href={item.href} aria-label={item.label} className={linkClass}>
+                      <Link
+                        href={item.href}
+                        aria-label={item.label}
+                        className={linkClass}
+                      >
                         <item.icon className="h-4 w-4 shrink-0" />
                       </Link>
                     }
@@ -160,12 +189,54 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             }
 
             return (
-              <Link key={item.href} href={item.href} aria-label={item.label} className={linkClass}>
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                className={linkClass}
+              >
                 <item.icon className="h-4 w-4 shrink-0" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
+
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="Bench Agent"
+                    onClick={onBenchToggle}
+                    className={cn(
+                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
+                      benchOpen
+                        ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+                    )}
+                  >
+                    <BenchAgentSparkle className="h-4 w-4 shrink-0" />
+                  </button>
+                }
+              />
+              <TooltipContent side="right">Bench Agent</TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              type="button"
+              onClick={onBenchToggle}
+              className={cn(
+                "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors gap-3",
+                benchOpen
+                  ? "bg-primary/15 text-primary font-medium ring-1 ring-inset ring-primary/20"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground font-normal",
+              )}
+            >
+              <BenchAgentSparkle className="h-4 w-4 shrink-0" />
+              <span>Bench Agent</span>
+            </button>
+          )}
         </div>
       </nav>
       <div className="flex border-t flex-col gap-0.5 px-2 py-3">
@@ -179,7 +250,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                     aria-label="Notifications"
                     aria-expanded={alertsOpen}
                     aria-haspopup="dialog"
-                    onClick={() => { setAlertsOpen(true); void loadAlerts(); }}
+                    onClick={() => {
+                      setAlertsOpen(true);
+                      void loadAlerts();
+                    }}
                     className={cn(
                       "relative flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors justify-center gap-0",
                       alertsOpen
@@ -203,7 +277,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               type="button"
               aria-expanded={alertsOpen}
               aria-haspopup="dialog"
-              onClick={() => { setAlertsOpen(true); void loadAlerts(); }}
+              onClick={() => {
+                setAlertsOpen(true);
+                void loadAlerts();
+              }}
               className={cn(
                 "relative flex items-center w-full rounded-md px-3 py-2 text-sm transition-colors gap-3",
                 alertsOpen
@@ -234,7 +311,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               <DialogDescription>Latest activity and alerts.</DialogDescription>
             </DialogHeader>
             <div className="flex items-center justify-between">
-              <Link href="/notifications" className="text-xs text-primary hover:underline">
+              <Link
+                href="/notifications"
+                className="text-xs text-primary hover:underline"
+              >
                 View all
               </Link>
               <Button
@@ -242,7 +322,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                 variant="outline"
                 disabled={alerts.length === 0}
                 onClick={async () => {
-                  await Promise.all(alerts.map((alert) => api.automation.acknowledgeAlert(alert.id)));
+                  await Promise.all(
+                    alerts.map((alert) =>
+                      api.automation.acknowledgeAlert(alert.id),
+                    ),
+                  );
                   await loadAlerts();
                 }}
               >
@@ -250,21 +334,38 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               </Button>
             </div>
             {alerts.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-2">No new notifications.</div>
+              <div className="text-sm text-muted-foreground py-2">
+                No new notifications.
+              </div>
             ) : (
               <div className="space-y-2">
                 {topNotifications.map((alert) => (
-                  <div key={alert.id} className="rounded-md border p-2 space-y-1">
+                  <div
+                    key={alert.id}
+                    className="rounded-md border p-2 space-y-1"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium truncate">{alert.title}</div>
-                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Alert</span>
+                      <div className="text-sm font-medium truncate">
+                        {alert.title}
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Alert
+                      </span>
                     </div>
-                    {alert.detail && <div className="text-xs text-muted-foreground truncate">{alert.detail}</div>}
+                    {alert.detail && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {alert.detail}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{formatRelativeTime(alert.created_at)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeTime(alert.created_at)}
+                      </span>
                       <div className="flex items-center gap-1">
                         <Link href={`/runs/${alert.run_id}`}>
-                          <Button size="xs" variant="outline">View</Button>
+                          <Button size="xs" variant="outline">
+                            View
+                          </Button>
                         </Link>
                         <Button
                           size="xs"
@@ -286,7 +387,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         </Dialog>
 
         {/* Controlled open + direct button clicks: DialogTrigger inside Tooltip breaks ref wiring for Base UI when collapsed. */}
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen} modal={false}>
+        <Dialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          modal={false}
+        >
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger
@@ -352,12 +457,20 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                   aria-label={dark ? "Disable dark mode" : "Enable dark mode"}
                   className="w-9 h-8 p-0"
                 >
-                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {dark ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
 
               {authUser ? (
-                <Button variant="destructive" className="w-full" onClick={handleLogout}>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleLogout}
+                >
                   Logout
                 </Button>
               ) : (

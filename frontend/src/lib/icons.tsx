@@ -104,3 +104,23 @@ export const PanelLeftOpen = MenuUnfoldOutlined;
 export const FailureInbox = InboxOutlined;
 export const Team = TeamOutlined;
 export const UserGroupAdd = UsergroupAddOutlined;
+export function BenchAgentSparkle({ className }: IconProps) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M14 3L15.5 10.5L23 12L15.5 13.5L14 21L12.5 13.5L5 12L12.5 10.5L14 3Z" />
+      <path d="M6 2L6.7 4.3L9 5L6.7 5.7L6 8L5.3 5.7L3 5L5.3 4.3L6 2Z" />
+      <path d="M6 16L6.5 17.5L8 18L6.5 18.5L6 20L5.5 18.5L4 18L5.5 17.5L6 16Z" />
+    </svg>
+  );
+}

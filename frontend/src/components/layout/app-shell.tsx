@@ -37,7 +37,12 @@ function TopBarBreadcrumbs() {
 }
 
 function isPublicAuthPath(pathname: string) {
-  return pathname === "/auth" || pathname.startsWith("/auth/") || pathname === "/onboarding" || pathname.startsWith("/invite/");
+  return (
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/invite/")
+  );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -109,95 +114,117 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider>
       <WorkspaceProvider>
-      <BreadcrumbsProvider>
-        <WorkspaceGate>
-        <div className="flex h-screen flex-col overflow-hidden">
-          <div className="h-11 border-b bg-background/95 backdrop-blur">
-            <div className="flex h-full">
-              <div
-                className={cn(
-                  "flex h-full items-center border-r",
-                  collapsed ? "w-16 px-2 justify-center" : "w-64 px-2",
-                )}
-              >
-                <Link
-                  href="/"
-                  aria-label="Bench Home"
-                  className={cn(
-                    "flex items-center gap-2 rounded-md text-primary",
-                    collapsed ? "justify-center" : "px-2",
-                  )}
-                >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-4.5 w-4.5"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
+        <BreadcrumbsProvider>
+          <WorkspaceGate>
+            <div className="flex h-screen flex-col overflow-hidden">
+              <div className="h-11 border-b bg-background/95 backdrop-blur">
+                <div className="flex h-full">
+                  <div
+                    className={cn(
+                      "flex h-full items-center border-r",
+                      collapsed ? "w-16 px-2 justify-center" : "w-64 px-2",
+                    )}
+                  >
+                    <Link
+                      href="/"
+                      aria-label="Bench Home"
+                      className={cn(
+                        "flex items-center gap-2 rounded-md text-primary",
+                        collapsed ? "justify-center" : "px-2",
+                      )}
                     >
-                      <circle cx="6.5" cy="6.5" r="2.7" fill="currentColor" />
-                      <circle cx="17.5" cy="6.5" r="2.7" fill="currentColor" />
-                      <circle cx="12" cy="17.5" r="2.7" fill="currentColor" />
-                      <path
-                        d="M8.5 8.2L10.5 12.2M15.5 8.2L13.5 12.2M9.8 15.4H14.2"
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
-                  {!collapsed && (
-                    <span className="flex items-center gap-1">
-                      <span className="text-sm font-semibold tracking-tight leading-none">
-                        Bench
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-4.5 w-4.5"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          aria-hidden="true"
+                        >
+                          <circle
+                            cx="6.5"
+                            cy="6.5"
+                            r="2.7"
+                            fill="currentColor"
+                          />
+                          <circle
+                            cx="17.5"
+                            cy="6.5"
+                            r="2.7"
+                            fill="currentColor"
+                          />
+                          <circle
+                            cx="12"
+                            cy="17.5"
+                            r="2.7"
+                            fill="currentColor"
+                          />
+                          <path
+                            d="M8.5 8.2L10.5 12.2M15.5 8.2L13.5 12.2M9.8 15.4H14.2"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                       </span>
-                    </span>
-                  )}
-                </Link>
-              </div>
-              <div className="flex flex-1 items-center pl-2 pr-3 gap-2">
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleCollapsed}
-                        className="h-7 w-7 p-0 shrink-0"
-                        aria-label={
-                          collapsed ? "Expand sidebar" : "Collapse sidebar"
+                      {!collapsed && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-sm font-semibold tracking-tight leading-none">
+                            Bench
+                          </span>
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                  <div className="flex flex-1 items-center pl-2 pr-3 gap-2">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleCollapsed}
+                            className="h-7 w-7 p-0 shrink-0"
+                            aria-label={
+                              collapsed ? "Expand sidebar" : "Collapse sidebar"
+                            }
+                          >
+                            {collapsed ? (
+                              <ChevronRight className="h-4 w-4" />
+                            ) : (
+                              <ChevronLeft className="h-4 w-4" />
+                            )}
+                          </Button>
                         }
-                      >
-                        {collapsed ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : (
-                          <ChevronLeft className="h-4 w-4" />
-                        )}
-                      </Button>
-                    }
-                  />
-                  <TooltipContent side="bottom">
-                    {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  </TooltipContent>
-                </Tooltip>
-                <TopBarBreadcrumbs />
-                <div className="ml-auto shrink-0">
-                  <WorkspaceSwitcher />
+                      />
+                      <TooltipContent side="bottom">
+                        {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <TopBarBreadcrumbs />
+                    <div className="ml-auto shrink-0">
+                      <WorkspaceSwitcher />
+                    </div>
+                  </div>
                 </div>
               </div>
+              <div className="flex flex-1 min-h-0">
+                <Sidebar
+                  collapsed={collapsed}
+                  benchOpen={benchOpen}
+                  onBenchToggle={() => setBenchOpen((v) => !v)}
+                />
+                <main className="flex-1 overflow-y-auto bg-muted/10">
+                  {children}
+                </main>
+                <BenchAIPanel
+                  open={benchOpen}
+                  onClose={() => setBenchOpen(false)}
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex flex-1 min-h-0">
-            <Sidebar collapsed={collapsed} />
-            <main className="flex-1 overflow-y-auto bg-muted/10">
-              {children}
-            </main>
-            <BenchAIPanel open={benchOpen} onOpen={() => setBenchOpen(true)} onClose={() => setBenchOpen(false)} />
-          </div>
-        </div>
-        </WorkspaceGate>
-      </BreadcrumbsProvider>
+          </WorkspaceGate>
+        </BreadcrumbsProvider>
       </WorkspaceProvider>
     </TooltipProvider>
   );

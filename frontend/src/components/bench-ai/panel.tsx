@@ -4,7 +4,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/lib/workspace-context";
 import { getAuthToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ChevronDownIcon, ChevronUpIcon, Loader2, SendHorizontal, X } from "@/lib/icons";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Loader2,
+  SendHorizontal,
+  X,
+} from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -79,7 +85,10 @@ function uid() {
 }
 
 function assistantText(msg: AssistantMessage): string {
-  return msg.blocks.filter((b): b is TextBlock => b.kind === "text").map((b) => b.content).join("");
+  return msg.blocks
+    .filter((b): b is TextBlock => b.kind === "text")
+    .map((b) => b.content)
+    .join("");
 }
 
 function toConversationMessages(messages: Message[]) {
@@ -95,11 +104,22 @@ function renderInline(text: string): React.ReactNode[] {
   const parts = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4)
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+      return (
+        <strong key={i} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
     if (part.startsWith("*") && part.endsWith("*") && part.length > 2)
       return <em key={i}>{part.slice(1, -1)}</em>;
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2)
-      return <code key={i} className="rounded bg-muted/80 px-1 py-0.5 font-mono text-[0.8em]">{part.slice(1, -1)}</code>;
+      return (
+        <code
+          key={i}
+          className="rounded bg-muted/80 px-1 py-0.5 font-mono text-[0.8em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
     return part;
   });
 }
@@ -120,7 +140,10 @@ function MarkdownContent({ content }: { content: string }) {
         i++;
       }
       nodes.push(
-        <pre key={`code-${i}`} className="my-2 overflow-x-auto rounded-md bg-black/10 dark:bg-white/5 p-3 font-mono text-xs whitespace-pre">
+        <pre
+          key={`code-${i}`}
+          className="my-2 overflow-x-auto rounded-md bg-black/10 dark:bg-white/5 p-3 font-mono text-xs whitespace-pre"
+        >
           <code>{codeLines.join("\n")}</code>
         </pre>,
       );
@@ -131,8 +154,16 @@ function MarkdownContent({ content }: { content: string }) {
     const hMatch = line.match(/^(#{1,3})\s+(.+)$/);
     if (hMatch) {
       const level = hMatch[1].length;
-      const cls = ["mt-2 text-sm font-bold", "mt-1.5 text-sm font-semibold", "mt-1 text-sm font-medium"][level - 1];
-      nodes.push(<p key={`h-${i}`} className={cls}>{renderInline(hMatch[2])}</p>);
+      const cls = [
+        "mt-2 text-sm font-bold",
+        "mt-1.5 text-sm font-semibold",
+        "mt-1 text-sm font-medium",
+      ][level - 1];
+      nodes.push(
+        <p key={`h-${i}`} className={cls}>
+          {renderInline(hMatch[2])}
+        </p>,
+      );
       i++;
       continue;
     }
@@ -165,7 +196,11 @@ function MarkdownContent({ content }: { content: string }) {
         i++;
       }
       nodes.push(
-        <ol key={`ol-${i}`} className="my-1 list-decimal space-y-0.5 pl-5" start={start}>
+        <ol
+          key={`ol-${i}`}
+          className="my-1 list-decimal space-y-0.5 pl-5"
+          start={start}
+        >
           {items.map((item, j) => (
             <li key={j}>{renderInline(item)}</li>
           ))}
@@ -216,16 +251,22 @@ function ElicitationForm({
 
   return (
     <div className="mt-2 rounded-xl border border-primary/25 bg-background/80 p-3 shadow-sm backdrop-blur-sm">
-      <p className="mb-2.5 text-xs font-medium text-foreground">{elicitation.message}</p>
+      <p className="mb-2.5 text-xs font-medium text-foreground">
+        {elicitation.message}
+      </p>
       <form onSubmit={handleSubmit} className="space-y-2.5">
         {elicitation.fields.map((field) => (
           <div key={field.name}>
             <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
               {field.label}
-              {field.required && <span className="ml-0.5 text-destructive">*</span>}
+              {field.required && (
+                <span className="ml-0.5 text-destructive">*</span>
+              )}
             </label>
             {field.description && (
-              <p className="mb-1 text-[10px] text-muted-foreground/70">{field.description}</p>
+              <p className="mb-1 text-[10px] text-muted-foreground/70">
+                {field.description}
+              </p>
             )}
             {field.type === "boolean" ? (
               <div className="flex items-center gap-2">
@@ -233,27 +274,37 @@ function ElicitationForm({
                   type="checkbox"
                   id={field.name}
                   checked={Boolean(values[field.name])}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.checked }))}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, [field.name]: e.target.checked }))
+                  }
                   className="h-3.5 w-3.5 rounded border-border accent-primary"
                 />
-                <label htmlFor={field.name} className="text-xs text-foreground">{field.label}</label>
+                <label htmlFor={field.name} className="text-xs text-foreground">
+                  {field.label}
+                </label>
               </div>
             ) : field.type === "select" ? (
               <select
                 value={String(values[field.name] ?? "")}
-                onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, [field.name]: e.target.value }))
+                }
                 required={field.required}
                 className={inputCls}
               >
                 <option value="">Select…</option>
                 {field.options?.map((o) => (
-                  <option key={o} value={o}>{o}</option>
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
                 ))}
               </select>
             ) : field.type === "textarea" ? (
               <textarea
                 value={String(values[field.name] ?? "")}
-                onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, [field.name]: e.target.value }))
+                }
                 placeholder={field.placeholder}
                 required={field.required}
                 rows={3}
@@ -261,9 +312,17 @@ function ElicitationForm({
               />
             ) : (
               <input
-                type={field.type === "number" ? "number" : field.type === "email" ? "email" : "text"}
+                type={
+                  field.type === "number"
+                    ? "number"
+                    : field.type === "email"
+                      ? "email"
+                      : "text"
+                }
                 value={String(values[field.name] ?? "")}
-                onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
+                onChange={(e) =>
+                  setValues((v) => ({ ...v, [field.name]: e.target.value }))
+                }
                 placeholder={field.placeholder}
                 required={field.required}
                 className={inputCls}
@@ -300,17 +359,32 @@ function ToolIndicator({ tool }: { tool: ToolEvent }) {
   const hasDetails = tool.done && (tool.input || tool.result);
 
   return (
-    <div className={cn("w-full rounded-md border text-xs", tool.done ? "border-border bg-muted/40 text-muted-foreground" : "border-primary/20 bg-primary/5 text-primary")}>
+    <div
+      className={cn(
+        "w-full rounded-md border text-xs",
+        tool.done
+          ? "border-border bg-muted/40 text-muted-foreground"
+          : "border-primary/20 bg-primary/5 text-primary",
+      )}
+    >
       <div className="flex items-center gap-2 px-3 py-1.5">
         {!tool.done && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
-        <span className="flex-1">{tool.label.replace("…", tool.done ? "…" : "…")}</span>
+        <span className="flex-1">
+          {tool.label.replace("…", tool.done ? "…" : "…")}
+        </span>
         {isScenario && (
-          <Link href={`/scenarios/${tool.result!.id}`} className="text-primary underline hover:opacity-80">
+          <Link
+            href={`/scenarios/${tool.result!.id}`}
+            className="text-primary underline hover:opacity-80"
+          >
             View
           </Link>
         )}
         {isSuite && (
-          <Link href={`/suites/${tool.result!.id}`} className="text-primary underline hover:opacity-80">
+          <Link
+            href={`/suites/${tool.result!.id}`}
+            className="text-primary underline hover:opacity-80"
+          >
             View
           </Link>
         )}
@@ -321,7 +395,11 @@ function ToolIndicator({ tool }: { tool: ToolEvent }) {
             className="ml-auto flex h-4 w-4 items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
             aria-label={expanded ? "Collapse" : "Expand"}
           >
-            {expanded ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />}
+            {expanded ? (
+              <ChevronUpIcon className="h-3 w-3" />
+            ) : (
+              <ChevronDownIcon className="h-3 w-3" />
+            )}
           </button>
         )}
       </div>
@@ -329,7 +407,9 @@ function ToolIndicator({ tool }: { tool: ToolEvent }) {
         <div className="border-t border-border px-3 py-2 space-y-2">
           {tool.input && Object.keys(tool.input).length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider opacity-60">Input</p>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider opacity-60">
+                Input
+              </p>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded bg-black/5 dark:bg-white/5 p-2 font-mono text-[10px]">
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
@@ -337,7 +417,9 @@ function ToolIndicator({ tool }: { tool: ToolEvent }) {
           )}
           {tool.result && (
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider opacity-60">Output</p>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider opacity-60">
+                Output
+              </p>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded bg-black/5 dark:bg-white/5 p-2 font-mono text-[10px]">
                 {JSON.stringify(tool.result, null, 2)}
               </pre>
@@ -365,8 +447,12 @@ function MessageBubble({
   if (isUser) {
     return (
       <div className="w-full bg-muted/40 px-4 py-2.5">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">You</p>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+          You
+        </p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          {message.content}
+        </p>
       </div>
     );
   }
@@ -377,7 +463,9 @@ function MessageBubble({
 
   return (
     <div className="w-full px-4 py-2.5">
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">Bench Agent</p>
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+        Bench Agent
+      </p>
       <div className="space-y-2">
         {blocks.map((block, i) =>
           block.kind === "tool" ? (
@@ -406,7 +494,13 @@ function MessageBubble({
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
-export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose: () => void; onOpen: () => void }) {
+export function BenchAIPanel({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const { activeWorkspaceId } = useWorkspace();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -451,7 +545,8 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
         }),
       });
 
-      if (!response.ok || !response.body) throw new Error(`Request failed: ${response.status}`);
+      if (!response.ok || !response.body)
+        throw new Error(`Request failed: ${response.status}`);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -488,7 +583,10 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
                   const blocks = [...m.blocks];
                   const last = blocks[blocks.length - 1];
                   if (last?.kind === "text") {
-                    blocks[blocks.length - 1] = { kind: "text", content: last.content + data.text };
+                    blocks[blocks.length - 1] = {
+                      kind: "text",
+                      content: last.content + data.text,
+                    };
                   } else {
                     blocks.push({ kind: "text", content: data.text });
                   }
@@ -498,39 +596,70 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
                 if (data.type === "tool_start")
                   return {
                     ...m,
-                    blocks: [...m.blocks, { kind: "tool", tool: { name: data.name ?? "", label: data.label ?? data.name ?? "", input: data.input, done: false } }],
+                    blocks: [
+                      ...m.blocks,
+                      {
+                        kind: "tool",
+                        tool: {
+                          name: data.name ?? "",
+                          label: data.label ?? data.name ?? "",
+                          input: data.input,
+                          done: false,
+                        },
+                      },
+                    ],
                   };
 
                 if (data.type === "tool_done") {
                   const blocks = [...m.blocks];
-                  const lastPending = [...blocks].reverse().findIndex((b) => b.kind === "tool" && !b.tool.done);
+                  const lastPending = [...blocks]
+                    .reverse()
+                    .findIndex((b) => b.kind === "tool" && !b.tool.done);
                   if (lastPending !== -1) {
                     const idx = blocks.length - 1 - lastPending;
                     const b = blocks[idx] as ToolBlock;
-                    blocks[idx] = { kind: "tool", tool: { ...b.tool, result: data.result, done: true } };
+                    blocks[idx] = {
+                      kind: "tool",
+                      tool: { ...b.tool, result: data.result, done: true },
+                    };
                   }
                   return { ...m, blocks };
                 }
 
                 if (data.type === "elicitation") {
                   const blocks = [...m.blocks];
-                  const lastPending = [...blocks].reverse().findIndex((b) => b.kind === "tool" && !b.tool.done);
+                  const lastPending = [...blocks]
+                    .reverse()
+                    .findIndex((b) => b.kind === "tool" && !b.tool.done);
                   if (lastPending !== -1) {
                     const idx = blocks.length - 1 - lastPending;
                     const b = blocks[idx] as ToolBlock;
-                    blocks[idx] = { kind: "tool", tool: { ...b.tool, done: true } };
+                    blocks[idx] = {
+                      kind: "tool",
+                      tool: { ...b.tool, done: true },
+                    };
                   }
                   return {
                     ...m,
                     blocks,
                     streaming: false,
-                    elicitation: { message: data.message ?? "", fields: data.fields ?? [] },
+                    elicitation: {
+                      message: data.message ?? "",
+                      fields: data.fields ?? [],
+                    },
                   };
                 }
 
                 if (data.type === "done") return { ...m, streaming: false };
                 if (data.type === "error")
-                  return { ...m, blocks: [...m.blocks, { kind: "text", content: `Error: ${data.message}` }], streaming: false };
+                  return {
+                    ...m,
+                    blocks: [
+                      ...m.blocks,
+                      { kind: "text", content: `Error: ${data.message}` },
+                    ],
+                    streaming: false,
+                  };
 
                 return m;
               }),
@@ -544,7 +673,17 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId && m.role === "assistant"
-            ? { ...m, blocks: [...m.blocks, { kind: "text" as const, content: "Something went wrong. Please try again." }], streaming: false }
+            ? {
+                ...m,
+                blocks: [
+                  ...m.blocks,
+                  {
+                    kind: "text" as const,
+                    content: "Something went wrong. Please try again.",
+                  },
+                ],
+                streaming: false,
+              }
             : m,
         ),
       );
@@ -561,7 +700,10 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
     await sendMessage(text, messages);
   }
 
-  function handleElicitationSubmit(msgId: string, data: Record<string, unknown>) {
+  function handleElicitationSubmit(
+    msgId: string,
+    data: Record<string, unknown>,
+  ) {
     // Find the elicitation to get field labels for formatting
     const msg = messages.find((m) => m.id === msgId);
     const elicitation = msg?.role === "assistant" ? msg.elicitation : undefined;
@@ -569,7 +711,9 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
     // Mark elicitation as done
     setMessages((prev) =>
       prev.map((m) =>
-        m.id === msgId && m.role === "assistant" ? { ...m, elicitationDone: true } : m,
+        m.id === msgId && m.role === "assistant"
+          ? { ...m, elicitationDone: true }
+          : m,
       ),
     );
 
@@ -579,13 +723,21 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
       : Object.entries(data).map(([k, v]) => `${k}: ${v}`);
     const formattedContent = lines.join("\n");
 
-    void sendMessage(formattedContent, [...messages, { id: msgId, role: "user" as const, content: formattedContent }].slice(0, -1));
+    void sendMessage(
+      formattedContent,
+      [
+        ...messages,
+        { id: msgId, role: "user" as const, content: formattedContent },
+      ].slice(0, -1),
+    );
   }
 
   function handleElicitationDismiss(msgId: string) {
     setMessages((prev) =>
       prev.map((m) =>
-        m.id === msgId && m.role === "assistant" ? { ...m, elicitationDone: true } : m,
+        m.id === msgId && m.role === "assistant"
+          ? { ...m, elicitationDone: true }
+          : m,
       ),
     );
   }
@@ -612,18 +764,6 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
 
   return (
     <>
-      {/* Floating trigger */}
-      {!open && (
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label="Open Bench Agent"
-          className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
-        >
-          <BenchLogo className="h-5 w-5" />
-        </button>
-      )}
-
       {/* Panel */}
       {open && (
         <div
@@ -633,7 +773,9 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
           {/* Header */}
           <div className="flex h-11 shrink-0 items-center border-b bg-muted/30 px-4">
             <BenchLogo className="h-4 w-4 shrink-0 text-foreground mr-2" />
-            <span className="text-sm font-semibold tracking-tight text-foreground">Bench Agent</span>
+            <span className="text-sm font-semibold tracking-tight text-foreground">
+              Bench Agent
+            </span>
             <button
               type="button"
               onClick={onClose}
@@ -644,77 +786,82 @@ export function BenchAIPanel({ open, onClose, onOpen }: { open: boolean; onClose
             </button>
           </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto py-1">
-          {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <BenchLogo className="h-6 w-6 text-primary" />
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto py-1">
+            {messages.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <BenchLogo className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Bench Agent</p>
+                  <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
+                    Tell me about your agents and I&apos;ll probe them, then
+                    write test scenarios and suites.
+                  </p>
+                </div>
+                <div className="mt-1 flex flex-col gap-1.5">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        setInput(s);
+                        textareaRef.current?.focus();
+                      }}
+                      className="rounded-lg border border-primary/20 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/5"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Bench Agent</p>
-                <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
-                  Tell me about your agents and I&apos;ll probe them, then write test scenarios and suites.
-                </p>
-              </div>
-              <div className="mt-1 flex flex-col gap-1.5">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => {
-                      setInput(s);
-                      textareaRef.current?.focus();
-                    }}
-                    className="rounded-lg border border-primary/20 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/5"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {messages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              onElicitationSubmit={handleElicitationSubmit}
-              onElicitationDismiss={handleElicitationDismiss}
-            />
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input */}
-        <div className="shrink-0 border-t px-3 py-2.5">
-          <div className="flex items-end gap-2 rounded-xl border bg-background px-3 py-2">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              placeholder="Ask Bench Agent…"
-              disabled={loading}
-              className="flex-1 resize-none bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-              style={{ minHeight: "22px", maxHeight: "140px" }}
-              aria-label="Message input"
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void send()}
-              disabled={!input.trim() || loading}
-              className="h-7 w-7 shrink-0 p-0"
-              aria-label="Send"
-            >
-              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SendHorizontal className="h-3.5 w-3.5" />}
-            </Button>
+            )}
+            {messages.map((m) => (
+              <MessageBubble
+                key={m.id}
+                message={m}
+                onElicitationSubmit={handleElicitationSubmit}
+                onElicitationDismiss={handleElicitationDismiss}
+              />
+            ))}
+            <div ref={bottomRef} />
           </div>
-          <p className="mt-1 text-center text-[10px] text-muted-foreground">
-            Enter to send · Shift+Enter for new line
-          </p>
-        </div>
+
+          {/* Input */}
+          <div className="shrink-0 border-t px-3 py-2.5">
+            <div className="flex items-end gap-2 rounded-xl border bg-background px-3 py-2">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                placeholder="Ask Bench Agent…"
+                disabled={loading}
+                className="flex-1 resize-none bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+                style={{ minHeight: "22px", maxHeight: "140px" }}
+                aria-label="Message input"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void send()}
+                disabled={!input.trim() || loading}
+                className="h-7 w-7 shrink-0 p-0"
+                aria-label="Send"
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <SendHorizontal className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+            <p className="mt-1 text-center text-[10px] text-muted-foreground">
+              Enter to send · Shift+Enter for new line
+            </p>
+          </div>
         </div>
       )}
     </>
